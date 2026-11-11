@@ -17,14 +17,14 @@ class DashboardPage(QWidget):
         layout.setSpacing(18)
         layout.addWidget(PageHeader('Your workspace', 'Make room for meaningful progress.',
                                     'Your focus, your pace. A clear view of the work you have put in.'))
-        self.stats = ResponsiveGrid(minimum=190)
+        self.stats = ResponsiveGrid(minimum=225)
         self.focus = StatCard('Saved focus', 'Time invested, across all tasks')
         self.sessions = StatCard('Sessions', 'Small steps that add up')
         self.tasks = StatCard('Open tasks', 'Ready for your next focus session')
         for card in (self.focus, self.sessions, self.tasks):
             self.stats.add(card)
         layout.addWidget(self.stats)
-        self.columns = ResponsiveGrid(minimum=300, maximum_columns=2)
+        self.columns = ResponsiveGrid(minimum=340, maximum_columns=2)
         self.hero = ProgressHero()
         self.columns.add(self.hero)
         self.next = Card()

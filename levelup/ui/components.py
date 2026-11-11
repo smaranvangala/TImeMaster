@@ -1,6 +1,6 @@
 """Shared presentation components. No database queries or reward calculations."""
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QScrollArea, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QLayout, QScrollArea, QStackedWidget, QVBoxLayout, QWidget
 
 
 def label(text='', role='body'):
@@ -52,13 +52,16 @@ class ResponsiveGrid(QWidget):
         self.grid = QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
         self.grid.setSpacing(14)
+        self.grid.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
 
     def add(self, widget):
         self.items.append(widget)
         self.reflow()
 
     def reflow(self):
-        columns = max(1, min(self.maximum_columns, (self.width() + 14) // (self.minimum + 14)))
+        measured = max((item.minimumSizeHint().width() for item in self.items), default=0)
+        minimum = max(self.minimum, measured)
+        columns = max(1, min(self.maximum_columns, (self.width() + 14) // (minimum + 14)))
         if columns == self.columns and self.grid.count() == len(self.items):
             return
         previous = self.columns
@@ -69,6 +72,11 @@ class ResponsiveGrid(QWidget):
         for index, widget in enumerate(self.items):
             self.grid.addWidget(widget, index // columns, index % columns)
         self.columns = columns
+
+    def minimumSizeHint(self):
+        # Do not let a previously wide column layout prevent later shrinking.
+        # Child minimum widths decide column count during reflow instead.
+        return QSize(0, self.grid.minimumSize().height())
 
     def resizeEvent(self, event):
         self.reflow()
