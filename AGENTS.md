@@ -21,3 +21,11 @@
 - Smoke: `python -m levelup --smoke-test` or packaged executable with --smoke-test; always temporary data.
 - User authorized committing/pushing the final Phase 5 tooling and running Windows CI. Windows CI run 42961639032 verified the release candidate; manual visual checks remain. Do not publish a public Release or sign binaries without authorization. Keep version in __init__.py and installer synchronized.
 - After authorized work: test, update PROJECT_STATUS.md, recommend a commit, stop.
+
+## Visual redesign review
+- Work only on redesign/modern-ui, branched from completed main at 67a4793.
+- User authorized small commits and pushing this branch; never merge into main until visual and functional approval.
+- UI-only scope: core.py/controller.py/progression.py/achievements.py/analytics.py/exports.py and schema v3 remain unchanged.
+- Shared UI components in ui/components.py, SVG icons in ui/icons.py and ui/assets/, centralized QSS/tokens in ui/theme.py. Bundle UI assets in TimeMaster.spec.
+- Dashboard reads existing Store results; it must not award XP, write data, or query on QTimer ticks.
+- Preserve UI signal intents and existing tests. Run all tests and offscreen smoke; check compact 760px and wide layouts. PageStack owns independent page scroll areas.

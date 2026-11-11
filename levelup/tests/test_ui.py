@@ -320,7 +320,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(0), 'Existing task')
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 20)
         for name, button in self.window.navigation.items():
-            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'))
+            self.assertEqual(button.isEnabled(), name in ('Dashboard', 'Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'))
         with patch.dict(os.environ, {'LOCALAPPDATA': self.directory.name}):
             self.assertEqual(default_database(), Path(self.directory.name) / 'LevelUp' / 'levelup.sqlite3')
 

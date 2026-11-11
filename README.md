@@ -1,7 +1,28 @@
 # TimeMaster (LevelUp)
 A local Windows desktop task and focus tracker using PySide6 and SQLite.
 
-## Download the Windows release candidate
+## Modern UI review branch
+The visual redesign lives on `redesign/modern-ui`; it is **not merged into main**.
+It adds a read-only dashboard, reusable cards, mint/charcoal styling, vector icons,
+progression and achievement views, compact navigation and a persistent focus dock.
+All task/session/XP/milestone/analytics/data rules and schema v3 are unchanged.
+
+To test this branch from an existing checkout on Windows:
+
+```powershell
+git fetch origin
+git switch --track origin/redesign/modern-ui
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m levelup
+```
+
+If the branch already exists locally, use `git switch redesign/modern-ui` followed
+by `git pull --ff-only`. Back up your saved database before testing. Test at narrow
+and wide widths, use the dashboard shortcuts, and check every existing feature.
+Keyboard navigation remains available when the sidebar collapses to icons;
+buttons retain tooltips and accessible names. Long pages scroll independently.
+
+## Download the original Windows release candidate
 [Download Windows installer and portable ZIP](https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032/artifacts/13829506487)
 (GitHub sign-in may be required; Actions artifacts have limited retention.)
 Extract the artifact archive. Run `TimeMaster-0.1.0-setup.exe`, or extract

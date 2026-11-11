@@ -2,10 +2,36 @@
 Updated: 2026-11-11
 
 ## Current phase
-All five planned development phases implemented. Windows x64 release candidate
-0.1.0 built and tested by GitHub Actions; portable/installer artifacts available.
-Automated release verification complete; manual visual/accessibility testing
-remains. No signed/public production release published. Further features require approval.
+Visual redesign implemented on redesign/modern-ui, based on completed main
+67a479328bad1ccda200ea2a76a9fb2d0ed4c676. User authorized small commits and branch
+push for Windows testing. DO NOT MERGE main until visual/functional approval.
+The completed five-phase app remains intact; this work changes presentation only.
+
+## Redesign scope / decisions
+- Read-only Dashboard using existing saved-time/session/task/XP/milestone results.
+- Reusable Card, StatCard, PageHeader, ResponsiveGrid, PageStack and ProgressHero.
+- Central charcoal/mint QSS with warm gold level/achievement accents, original
+  local SVG line icons and bundled dropdown chevron (no new dependencies).
+- Progression hero/level badge and slim progress bars; achievement cards with
+  retained Unlock details table/timestamps. No reward or unlock changes.
+- Redesigned task/history/analytics/settings screens and empty states.
+- Persistent focus dock reflows at narrow widths; sidebar becomes icon-only
+  under 1050px and retains tooltips/accessibility labels. Minimum window 760x620.
+- Each page owns a scroll area so long collections do not stretch other pages.
+- No changes to core.py, controller.py, progression.py, achievements.py,
+  analytics.py, exports.py or SQLite schema/data path. Verified against main.
+- Commits: shared design/progression cards; responsive shell/data screens;
+  UI regression tests/docs. Separate commits keep review manageable.
+
+## Redesign validation
+- All 43 automated tests pass (39 existing + 4 redesign regression tests).
+- Added coverage: dashboard totals/actions, saved-data immutability while resizing/
+  navigating, timer continuity across pages, 760x620/1280x900/1600x1000 layouts,
+  focus controls reachable, no page-level horizontal overflow, compact keyboard
+  navigation, last achievement reachable by scroll, card/detail consistency.
+- Offscreen screenshots reviewed at 1280x900 and 760x680 across six main views.
+- Syntax/diff checks and source smoke pass. Windows branch build pending.
+- Real Windows visuals/high-DPI still require user review before any main merge.
 
 ## Completed features
 - Phase 1: PySide6 task CRUD/completion, SQLite persistence, monotonic focus
@@ -83,15 +109,18 @@ remains. No signed/public production release published. Further features require
 - History/analytics read selected session rows; large-dataset pagination deferred.
 - Deleted task names unavailable; analytics filters not persisted.
 
-## Git / final handoff
+## Original release / redesign handoff
 - Working repo /workspace/TImeMaster; root-level copies are historical.
-- Origin https://github.com/smaranvangala/TImeMaster.git, main.
+- Origin https://github.com/smaranvangala/TImeMaster.git. Redesign work is on
+  redesign/modern-ui; main must remain at 67a4793 until approval.
 - Tested release-tooling commit: 164e12862671a2603ca05be9122d49ead7b81339, pushed.
 - User approved commit/push and Windows build execution. Final documentation
   update records verified results; no public Release or signing performed.
 - Run 42961639032 and artifact 13829506487 contain portable ZIP, installer,
   dependency inventory and SHA256 manifest. Artifacts have limited retention.
-- Next: download artifact, back up local data, manually test Windows visuals,
+- Original artifacts below are the previous design. For redesign, check out
+  redesign/modern-ui; user must approve before merge.
+- Next: back up local data, manually test Windows visuals,
   scaling, keyboard/screen reader and real-data workflow (RELEASE.md). Decide
   distribution license/signing only if publishing publicly. No additional phase
   or feature work is started automatically.
