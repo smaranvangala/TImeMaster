@@ -64,7 +64,7 @@ class ProgressionTests(unittest.TestCase):
                 self.assertEqual([tuple(row) for row in store.connection.execute('SELECT * FROM sessions')], original_sessions)
                 self.assertEqual(store.progression().total_xp, 3)
                 self.assertEqual(store.connection.execute('SELECT COUNT(*) FROM xp_awards').fetchone()[0], 3)
-                self.assertEqual(store.connection.execute('PRAGMA user_version').fetchone()[0], 2)
+                self.assertEqual(store.connection.execute('PRAGMA user_version').fetchone()[0], 3)
                 self.assertEqual(store.connection.execute('PRAGMA foreign_key_check').fetchall(), [])
             finally:
                 store.close()

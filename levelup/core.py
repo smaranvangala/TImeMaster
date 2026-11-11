@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .progression import progress_for, session_xp
+from .achievements import evaluate
 
 
 def utc_now():
@@ -28,7 +29,7 @@ class Store:
         with self.connection:
             self.connection.execute('BEGIN IMMEDIATE')
             version = self.connection.execute('PRAGMA user_version').fetchone()[0]
-            if version > 2:
+            if version > 3:
                 raise ValueError('This database requires a newer version of TimeMaster.')
             if version == 0:
                 self.connection.execute("""
@@ -60,6 +61,16 @@ class Store:
                 """)
                 self._backfill_xp()
                 self.connection.execute('PRAGMA user_version = 2')
+                version = 2
+            if version == 2:
+                self.connection.execute("""
+                    CREATE TABLE achievement_unlocks (
+                        achievement_key TEXT PRIMARY KEY,
+                        unlocked_at TEXT NOT NULL
+                    )
+                """)
+                self._unlock_achievements()
+                self.connection.execute('PRAGMA user_version = 3')
 
     def _backfill_xp(self):
         # Phase 1 always stored positive seconds; CAST truncates whole minutes.
@@ -72,6 +83,23 @@ class Store:
         total = self.connection.execute(
             'SELECT COALESCE(SUM(points), 0) FROM xp_awards').fetchone()[0]
         return progress_for(total)
+
+    def achievements(self):
+        summary = self.focus_summary()
+        metrics = {'sessions': summary['session_count'], 'seconds': summary['focus_seconds'],
+                   'level': self.progression().level}
+        unlocked = dict(self.connection.execute(
+            'SELECT achievement_key, unlocked_at FROM achievement_unlocks').fetchall())
+        return evaluate(metrics, unlocked)
+
+    def _unlock_achievements(self):
+        # Called inside the migration/session transaction; no bonus XP or counters.
+        detected_at = utc_now()
+        for progress in self.achievements():
+            if not progress.earned and progress.current >= progress.achievement.target:
+                self.connection.execute(
+                    'INSERT OR IGNORE INTO achievement_unlocks(achievement_key, unlocked_at) VALUES (?,?)',
+                    (progress.achievement.key, detected_at))
 
     @staticmethod
     def validate_title(title):
@@ -132,6 +160,7 @@ class Store:
             self.connection.execute(
                 'INSERT INTO xp_awards(session_id, points, awarded_at) VALUES (?,?,?)',
                 (cursor.lastrowid, session_xp(seconds), utc_now()))
+            self._unlock_achievements()
 
     def close(self):
         self.connection.close()

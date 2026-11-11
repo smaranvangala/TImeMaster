@@ -34,8 +34,8 @@ sessions. Completing a task is independent of completing a focus session.
 Deleted tasks retain their sessions and overall time, labeled “Deleted task”;
 history uses current titles for tasks that still exist.
 
-Tasks, Session history and XP & Levels are enabled. Dashboard, Skills,
-Milestones, Analytics and Settings remain placeholders.
+Tasks, Session history, XP & Levels and Milestones are enabled. Dashboard,
+Skills, Analytics and Settings remain placeholders.
 
 ## XP and levels (Phase 2)
 Each saved session awards 1 XP per full active minute: 59 seconds gives 0 XP,
@@ -49,14 +49,32 @@ deleted tasks. Completing/reopening tasks earns no XP, and deleting a task
 keeps its XP. Each session has one ledger entry; saving the session and award
 is atomic. Reopening the app or retrying a failed save cannot duplicate awards.
 
+## Milestones and achievements (Phase 3)
+The Milestones page shows seven automatic, permanent achievements:
+
+- Save 1, 10 and 25 focus sessions.
+- Accumulate 1 and 10 hours of saved active focus.
+- Reach levels 2 and 5.
+
+Each milestone shows progress, status and recorded unlock time in the computer's
+local timezone. Saved time and sessions for deleted tasks still count. Any saved
+nonzero session counts; unsaved active/paused time does not. Milestones award no
+bonus XP and cannot be unlocked twice. Completing or reopening tasks changes
+neither milestone progress nor XP. Progress refreshes after a successful save.
+
+Existing data is recognized during the upgrade. For historical milestones,
+the recorded unlock time is the upgrade time, not a reconstructed historical
+achievement date. Unlocks persist after restarting and deleting tasks.
+
 ## Existing data
 The app opens the same database as before:
 `%LOCALAPPDATA%\LevelUp\levelup.sqlite3` on Windows, or
 `~/.local/share/LevelUp/levelup.sqlite3` on other systems.
-Phase 2 automatically upgrades schema version 1 to 2 transactionally, adding
-an XP ledger and crediting existing sessions while preserving all task/session
-rows. Back up this file while the app is closed before the first Phase 2 launch.
-Older Phase 1 builds are not supported against an upgraded database; restore
+Phase 3 transactionally upgrades schema version 2 to 3, adding milestone
+unlocks while preserving tasks, sessions and XP awards. Version 1 databases
+upgrade through version 2 automatically. Back up this file while the app is
+closed before the first Phase 3 launch. Older builds are not supported against
+an upgraded database; restore
 the backup if rolling back the application. There is no cloud
 account or sync. Forced termination can lose the current unsaved session.
 
@@ -74,6 +92,7 @@ or timing sleeps are involved.
 
 - `levelup/core.py`: SQLite persistence, derived focus totals/history and unchanged monotonic timer.
 - `levelup/progression.py`: pure reward rules and level calculations.
+- `levelup/achievements.py`: stable milestone definitions and pure progress evaluation.
 - `levelup/controller.py`: application actions and task/session guards, independent of Qt.
 - `levelup/app.py`: QMainWindow, dialogs, signals, startup and close handling.
 - `levelup/ui/`: reusable task/focus widgets and the shared dark theme.
@@ -89,7 +108,9 @@ or timing sleeps are involved.
 6. Delete a task and confirm its saved time remains in the overall total/history.
 7. Open XP & Levels. Save 60+ seconds of active focus; confirm XP increases
    immediately and remains unchanged after restarting, reopening or deleting tasks.
-8. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
+8. Open Milestones before/after saving, verify first-session progress/unlocks,
+   restart and delete a task; confirm unlocks persist and XP has no bonus.
+9. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
 
-See PROJECT_STATUS.md for phase gates. Phase 2 is ready for Windows testing; the user authorized publishing it to main. No achievements, milestones, advanced analytics or installer are
-implemented. Phase 3 requires approval.
+See PROJECT_STATUS.md for phase gates. Phase 3 is ready for Windows testing; the user authorized publishing it to main. Advanced
+analytics and Windows packaging are deferred. Phase 4 requires approval.

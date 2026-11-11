@@ -17,6 +17,7 @@ from .ui.theme import DARK_THEME
 from .ui.history import HistoryPage
 from .ui.formatting import format_duration
 from .ui.progress import ProgressPage
+from .ui.milestones import MilestonesPage
 
 
 def default_database():
@@ -56,6 +57,8 @@ class Application(QMainWindow):
         self.pages.addWidget(self.history)
         self.progress = ProgressPage()
         self.pages.addWidget(self.progress)
+        self.milestones = MilestonesPage()
+        self.pages.addWidget(self.milestones)
         self.navigation = {}
         for name in ('Dashboard', 'Skills', 'Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
             button = QPushButton(name.replace('&', '&&'))
@@ -67,6 +70,8 @@ class Application(QMainWindow):
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.history))
             elif name == 'XP & Levels':
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.progress))
+            elif name == 'Milestones':
+                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.milestones))
             else:
                 button.setEnabled(False)
                 button.setToolTip('Planned for a later phase')
@@ -119,6 +124,7 @@ class Application(QMainWindow):
             f"Completed sessions: {summary['session_count']}")
         self.history.render(self.store.session_history())
         self.progress.render(self.store.progression())
+        self.milestones.render(self.store.achievements())
 
     def rename(self):
         task_id = self.tasks.selected_id()

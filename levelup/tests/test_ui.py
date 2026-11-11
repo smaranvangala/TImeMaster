@@ -118,8 +118,9 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(len(reopened.tasks()), 1)
             self.assertEqual(reopened.focus_summary()['focus_seconds'], 12)
             self.assertEqual(reopened.focus_summary()['session_count'], 1)
+            self.assertTrue(reopened.achievements()[0].earned)
             self.assertEqual(reopened.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 12)
-            self.assertEqual(reopened.connection.execute('PRAGMA user_version').fetchone()[0], 2)
+            self.assertEqual(reopened.connection.execute('PRAGMA user_version').fetchone()[0], 3)
         finally:
             reopened.close()
 
@@ -137,6 +138,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.focus.status.text(), 'Paused')
         self.assertIn('Completed sessions: 0', self.window.summary.text())
         self.assertEqual(self.window.history.tree.topLevelItemCount(), 0)
+        self.assertEqual(self.window.milestones.summary.text(), '0 / 7 unlocked')
         self.click(self.window.focus.stop_button)
         self.assertIn('Completed sessions: 1', self.window.summary.text())
         self.assertEqual(self.window.history.tree.topLevelItemCount(), 1)
@@ -206,6 +208,30 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.progress.bar.value(), 0)
         self.assertEqual(self.window.progress.total.text(), 'Total XP: 100')
 
+    def test_milestones_refresh_after_save_and_persist(self):
+        self.add_selected()
+        self.assertEqual(self.window.milestones.summary.text(), '0 / 7 unlocked')
+        self.click(self.window.navigation['Milestones'])
+        self.assertIs(self.window.pages.currentWidget(), self.window.milestones)
+        self.click(self.window.focus.start_button)
+        self.now[0] = 65
+        self.window.tick()
+        self.assertEqual(self.window.milestones.summary.text(), '0 / 7 unlocked')
+        self.click(self.window.focus.stop_button)
+        self.assertEqual(self.window.milestones.summary.text(), '1 / 7 unlocked')
+        row = self.window.milestones.tree.topLevelItem(0)
+        self.assertEqual(row.text(1), '1 / 1 sessions')
+        self.assertEqual(row.text(2), 'Unlocked')
+        recorded = row.text(3)
+        self.assertNotEqual(recorded, '—')
+        self.window.close()
+        self.store = Store(self.path)
+        self.controller = Controller(self.store, FocusTimer(lambda: self.now[0]))
+        self.window = Application(self.store, self.controller)
+        self.window.show()
+        self.assertEqual(self.window.milestones.summary.text(), '1 / 7 unlocked')
+        self.assertEqual(self.window.milestones.tree.topLevelItem(0).text(3), recorded)
+
     def test_existing_phase_one_database_and_navigation(self):
         self.store.add_task('Existing task')
         self.store.record_session(1, '2026-11-11T00:00:00+00:00', 20)
@@ -213,7 +239,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(0), 'Existing task')
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 20)
         for name, button in self.window.navigation.items():
-            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels'))
+            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones'))
         with patch.dict(os.environ, {'LOCALAPPDATA': self.directory.name}):
             self.assertEqual(default_database(), Path(self.directory.name) / 'LevelUp' / 'levelup.sqlite3')
 

@@ -50,7 +50,7 @@ class CoreTests(unittest.TestCase):
         self.assertIsNone(self.store.session_history()[0]['task_title'])
         self.assertEqual(self.store.focus_summary()['focus_seconds'], 3631.5)
         self.assertEqual(self.store.focus_summary()['session_count'], 3)
-        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 2)
+        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 3)
 
     def test_invalid_titles_and_sql_text(self):
         for title in (' ', 'a' * 201):
