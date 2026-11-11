@@ -2,94 +2,67 @@
 Updated: 2026-11-11
 
 ## Current phase
-Phase 1 PySide6 migration complete; awaiting Windows manual testing and approval.
-User authorized publishing the migration for Windows testing. STOP: Phase 2 requires user approval.
-
-## Phased development plan
-1. Core: desktop shell, SQLite storage, task CRUD/completion, focus stopwatch,
-   persistent sessions, core tests and documentation.
-2. Progression: define reward rules; add XP ledger and levels with migrations,
-   prevent duplicate rewards, test calculations, show progress in the UI.
-3. Milestones: define goals and achievements, persist unlocks, add UI and tests.
-4. Analytics: session history, daily/weekly totals, charts and filtering.
-5. Release: Windows validation, accessibility review, executable/installer,
-   backup/export workflow, release checks and documentation.
-Each phase ends with relevant tests, status update, commit recommendation, and
-an explicit pause. Details may be refined when that phase is authorized.
+Phase 1 cumulative-time visibility update complete, awaiting Windows manual
+review. User authorized a local commit; push remains pending approval. Phase 2 requires approval.
 
 ## Completed features
-- PySide6 dark desktop shell; add, rename, complete/reopen, and delete tasks.
-- SQLite persistence with input validation, transactions, parameterized SQL,
-  foreign keys and initial schema version 1.
-- Task-bound monotonic focus stopwatch with start, pause/resume, stop/save.
-- UTC session timestamps and fractional active seconds; paused time excluded.
-- Session history survives task deletion; active tasks cannot be completed/deleted.
-- Normal close saves after confirmation. Save failures preserve the paused session.
-- Modular Qt task/focus widgets, application controller, dark theme and disabled
-  future navigation entries. QTimer refreshes the display every 200 ms.
-- requirements.txt, updated README and AGENTS.md; five original core tests plus
-  six Qt interface tests.
+- PySide6 dark interface; create/select/rename/complete/reopen/delete tasks.
+- SQLite persistence, task-bound monotonic focus timer, pause/resume/stop/save,
+  close confirmation, retained paused session on save failure.
+- Saved focus column for every task, overall saved duration and completed
+  session count, computed directly using SQLite SUM/COUNT queries.
+- Session history page: task, local start date/time with UTC offset, duration,
+  newest first. Totals/history refresh after successful stop/save and load on startup.
+- Existing session rows included without migration. No duplicate counters.
+- Deleted tasks retain sessions and overall time; shown as “Deleted task”.
+  Existing tasks use their current titles. Unsaved active sessions excluded.
+- HH:MM:SS durations floor fractional seconds after aggregation; hours unbounded.
+  Every saved nonzero session counts independently of task completion.
 
 ## Architecture decisions
-- Empty workspace at inspection; no existing app or project instructions found.
-- Python 3.11+, PySide6>=6.8,<7 and standard-library SQLite. Tested with
-  PySide6 6.12.0 on Linux. Windows packaging deferred to Phase 5.
-- core.py and __main__.py unchanged; no schema or database path changes.
-- controller.py owns application actions without Qt dependencies; ui/ widgets
-  emit intent through signals; app.py composes QMainWindow, dialogs and QTimer.
-- QStackedWidget provides space for future pages; only Tasks is enabled.
-- Elapsed time still uses FocusTimer, never QTimer tick counts. Save failures
-  preserve the paused session and keep the window open.
-- Database: %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on Windows; otherwise
-  ~/.local/share/LevelUp/levelup.sqlite3. No account, network service or sync.
-- Count-up focus timer; no countdown or Pomodoro rules specified.
-- Schema version 1; future changes must migrate without deleting user data.
-- No model auto-switching. Routine edits suit a lower-cost model; architecture
-  and difficult debugging benefit from a stronger model selected by the user.
+- Python 3.11+, PySide6>=6.8,<7, standard-library SQLite.
+- core.py owns database queries/timer; controller.py owns actions/guards;
+  app.py composes Qt views/dialogs; ui/ holds widgets and formatting.
+- QTimer refreshes live display every 200 ms; never computes elapsed time or
+  queries SQLite. Saved summaries/history refresh only with data changes/startup.
+- Preserve schema version 1 and database path:
+  %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on Windows, otherwise
+  ~/.local/share/LevelUp/levelup.sqlite3. Future schema changes require migrations.
+- This update adds read-only aggregate/history queries, not schema changes.
+- No live user database exists in this cloud workspace; Windows data is not
+  accessible here. Validation uses temporary SQLite databases and saved records.
 
 ## Validation
-- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (11 tests).
-- PASS: .venv/bin/python -m compileall -q levelup.
-- Five original core tests preserved. Six offscreen Qt tests exercise task CRUD,
-  Enter-to-add, selection preservation, invalid input, completed/active task
-  guards, timer display, pause/resume, saved history, close cancellation,
-  close/save persistence, failed-save retry, database path and disabled navigation.
-- Qt tests use temporary SQLite databases and deterministic clocks.
-- core.py, __main__.py and original core tests match the committed Phase 1 files.
-- PASS: offscreen Qt window render/close smoke check; layout inspected.
-- Windows appearance, native dialogs and display scaling require manual testing.
+- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (13 tests).
+- PASS: .venv/bin/python -m compileall -q levelup; git diff --check.
+- Core tests cover empty/multiple-task/fractional totals, completed tasks,
+  reopening a database, history ordering and retained deleted-task time.
+- Qt tests cover immediate updates, page navigation, window reopening,
+  renaming/deleting history tasks, close/save totals, failed-save count/history,
+  plus all previous task and timer behavior tests.
+- Windows manual validation of cumulative-time UI remains pending.
 
 ## Known bugs / limitations
-- No confirmed core defects from automated checks.
-- Active sessions are memory-only until stop/normal close; force-close/crash
-  recovery is not implemented. OS sleep accounting follows platform monotonic behavior.
-- Desktop interaction and Windows appearance still need manual verification.
-- No executable/installer yet; Python with PySide6 is required.
-- The workspace root has a read-only Git placeholder; the working repository
-  is /workspace/TImeMaster. Original Phase 1 files remain at /workspace.
+- No confirmed defects from automated checks.
+- Forced exit can lose the unsaved active session; crash recovery not implemented.
+- Original names of deleted tasks cannot be recovered from schema v1 records.
+- History loads all saved sessions; pagination is deferred unless needed.
+- Native Windows appearance/scaling still requires manual verification.
+- No installer yet. OS sleep accounting follows platform monotonic behavior.
 
-## Remaining tasks / next step
-- Manually run `py -m levelup` on Windows: add/rename/reopen/delete tasks,
-  time a pause/resume session, stop/save, restart to check task persistence,
-  and exercise close cancellation and save confirmation.
-- GitHub setup: initialized main in /workspace/TImeMaster; origin is
-  https://github.com/smaranvangala/TImeMaster.git. Remote was empty at inspection.
-- Phase 1 commit message: `Phase 1: Core application`.
-- Python/PySide6 ignore rules exclude secrets, local databases, caches, virtual
-  environments, generated Qt code and build output. Runtime is now PySide6.
-- Initial commit created: 72c159c (`Phase 1: Core application`).
-- GitHub push succeeded in the previous task; remote main was verified at
-  9606ad9, containing original Phase 1 commit 72c159c and the documentation commit.
-  The historical permission blocker is resolved.
-- User approved the migration commit and push for Windows manual testing.
-  Commit message: `Migrate Phase 1 UI from Tkinter to PySide6`.
-- Pre-publication checks: all 11 tests pass; syntax and pip dependency checks
-  pass; module entry point opens/closes Qt with a temporary database offscreen.
-- Source/docs reviewed; only explicit project files staged. No secrets, local
-  databases, virtual environments or generated artifacts included.
-- No Git history rewritten and no existing user database touched.
-- Next: pull main on Windows, install requirements and run `python -m levelup`;
-  follow the README manual checklist before authorizing Phase 2.
-- Await user approval before Phase 2; next implementation is XP reward rules,
-  versioned migration and idempotent award tests.
-- No fresh session needed yet. For future sessions, read AGENTS.md and this file.
+## Git / working directory
+- Work in /workspace/TImeMaster; workspace-root copies are historical.
+- Origin: https://github.com/smaranvangala/TImeMaster.git, branch main.
+- Published migration: af8f8582553eb7f7899b471ba0f75494da7cae34.
+- User authorized committing the cumulative-time update locally. It is not pushed.
+- Commit message: `feat: show saved focus totals and session history`.
+
+## Remaining plan / next step
+- User manually tests multiple sessions, paused time, totals after save/restart,
+  history dates and deleted-task retention on Windows, then approves publishing.
+- Phase 2: XP reward rules, ledger, levels and idempotent award tests; NOT started.
+- Phase 3: milestones/achievements. Phase 4: daily/weekly analytics/charts/filtering
+  (basic session history delivered early at user request). Phase 5: Windows packaging.
+- Each phase: test, update notes, recommend commit, stop for approval.
+- A fresh session is reasonable after manual testing; read AGENTS.md and this
+  file first. No need to repeat full codebase inspection.

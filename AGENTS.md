@@ -12,5 +12,6 @@
 - SQL uses bound parameters and transactions. Preserve history on task deletion.
 - Preserve %LOCALAPPDATA%/LevelUp/levelup.sqlite3 and schema version 1. Future schema changes require versioned migrations; never reset user data.
 - Keep dependencies/explanations concise. Future sidebar sections stay disabled until authorized. Do not implement Phase 2 yet.
-- User authorized committing/pushing the PySide6 migration for Windows manual testing. Phase 2 still requires separate approval.
+- Totals/history are SQL-derived from sessions; never add duplicate counters. Include deleted-task sessions in overall totals. QTimer must not run database queries.
+- User authorized a local commit for cumulative-time changes; do not push without approval. Phase 2 requires separate approval.
 - After authorized work: test, update PROJECT_STATUS.md, recommend a commit, stop.

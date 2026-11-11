@@ -24,7 +24,17 @@ deleting it. Deletion asks for confirmation and preserves saved focus sessions.
 Closing with an active session asks to save and exit; No keeps the window open.
 A save failure leaves the session paused and available to retry.
 
-The dark sidebar reserves space for future sections. Only Tasks is enabled;
+Tasks now includes a Saved focus column. Overall saved focus and completed
+session count appear above the content. Session history lists each task, local
+start date/time (with UTC offset) and active duration, newest first. Totals use
+all saved sessions; an active unsaved session is shown only in the live timer.
+Durations display HH:MM:SS with unbounded hours, truncating fractional seconds
+after summing. Each saved nonzero session counts, including manually stopped
+sessions. Completing a task is independent of completing a focus session.
+Deleted tasks retain their sessions and overall time, labeled “Deleted task”;
+history uses current titles for tasks that still exist.
+
+The dark sidebar reserves space for future sections. Tasks and Session history are enabled;
 Dashboard, Skills, XP & Levels, Milestones, Analytics and Settings are placeholders.
 
 ## Existing data
@@ -47,7 +57,7 @@ On Linux/macOS, substitute `.venv/bin/python`. Qt tests default to the offscreen
 platform and use temporary databases and an injected clock; no real user data
 or timing sleeps are involved.
 
-- `levelup/core.py`: unchanged SQLite persistence and monotonic timer.
+- `levelup/core.py`: SQLite persistence, derived focus totals/history and unchanged monotonic timer.
 - `levelup/controller.py`: application actions and task/session guards, independent of Qt.
 - `levelup/app.py`: QMainWindow, dialogs, signals, startup and close handling.
 - `levelup/ui/`: reusable task/focus widgets and the shared dark theme.
@@ -58,7 +68,13 @@ or timing sleeps are involved.
 2. Start a session; pause, wait, and resume. Confirm the pause is excluded.
 3. Stop and save; delete its task and restart to confirm remaining tasks persist.
 4. Start another session. Close and choose No, then close and choose Yes.
-5. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
+5. Save multiple sessions on two tasks. Check per-task/overall totals and count,
+   open Session history, then restart and verify the same saved totals/history.
+6. Delete a task and confirm its saved time remains in the overall total/history.
+7. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
 
-See PROJECT_STATUS.md for phase gates. No XP, levels, milestones, analytics or
+See PROJECT_STATUS.md for phase gates. No XP, levels, milestones, advanced analytics or
 Windows installer is implemented. Phase 2 requires explicit approval.
+
+The cumulative-time changes are committed locally; pushing awaits approval;
+GitHub main currently contains the PySide6 migration, not these additions.

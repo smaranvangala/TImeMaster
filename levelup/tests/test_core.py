@@ -28,6 +28,30 @@ class CoreTests(unittest.TestCase):
         self.store.delete_task(task)
         self.assertEqual(self.store.tasks(), [])
 
+    def test_cumulative_totals_history_and_persistence(self):
+        self.assertEqual(dict(self.store.focus_summary()), {'focus_seconds': 0, 'session_count': 0})
+        self.assertEqual(self.store.session_history(), [])
+        first = self.store.add_task('First')
+        second = self.store.add_task('Second')
+        empty = self.store.add_task('No sessions')
+        self.store.record_session(first, '2026-11-10T10:00:00+00:00', 10.75)
+        self.store.record_session(first, '2026-11-11T10:00:00+00:00', 20.75)
+        self.store.record_session(second, '2026-11-11T11:00:00+00:00', 3600)
+        self.store.set_completed(first, True)
+        self.store.close()
+        self.store = Store(self.path)
+        totals = {row['id']: row['focus_seconds'] for row in self.store.tasks()}
+        self.assertEqual(totals, {first: 31.5, second: 3600, empty: 0})
+        self.assertEqual(dict(self.store.focus_summary()), {'focus_seconds': 3631.5, 'session_count': 3})
+        history = self.store.session_history()
+        self.assertEqual([row['task_title'] for row in history], ['Second', 'First', 'First'])
+        self.assertEqual(history[0]['seconds'], 3600)
+        self.store.delete_task(second)
+        self.assertIsNone(self.store.session_history()[0]['task_title'])
+        self.assertEqual(self.store.focus_summary()['focus_seconds'], 3631.5)
+        self.assertEqual(self.store.focus_summary()['session_count'], 3)
+        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 1)
+
     def test_invalid_titles_and_sql_text(self):
         for title in (' ', 'a' * 201):
             with self.assertRaises(ValueError):

@@ -14,6 +14,8 @@ from .controller import Controller
 from .core import Store
 from .ui.tasks import FocusPanel, TasksPage
 from .ui.theme import DARK_THEME
+from .ui.history import HistoryPage
+from .ui.formatting import format_duration
 
 
 def default_database():
@@ -49,13 +51,17 @@ class Application(QMainWindow):
         self.pages = QStackedWidget()
         self.tasks = TasksPage()
         self.pages.addWidget(self.tasks)
+        self.history = HistoryPage()
+        self.pages.addWidget(self.history)
         self.navigation = {}
-        for name in ('Dashboard', 'Skills', 'Tasks', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
+        for name in ('Dashboard', 'Skills', 'Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
             button = QPushButton(name.replace('&', '&&'))
             self.navigation[name] = button
             if name == 'Tasks':
                 button.setObjectName('primary')
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.tasks))
+            elif name == 'Session history':
+                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.history))
             else:
                 button.setEnabled(False)
                 button.setToolTip('Planned for a later phase')
@@ -63,6 +69,9 @@ class Application(QMainWindow):
         navigation.addStretch()
         layout.addWidget(sidebar)
         content = QVBoxLayout()
+        self.summary = QLabel()
+        self.summary.setWordWrap(True)
+        content.addWidget(self.summary)
         content.addWidget(self.pages, 1)
         self.focus = FocusPanel()
         content.addWidget(self.focus)
@@ -73,7 +82,7 @@ class Application(QMainWindow):
         self.tasks.delete_requested.connect(lambda: self.safe(self.delete))
         self.focus.start_requested.connect(lambda: self.safe(self.start))
         self.focus.pause_requested.connect(lambda: self.safe(self.controller.pause))
-        self.focus.stop_requested.connect(lambda: self.safe(self.controller.stop))
+        self.focus.stop_requested.connect(lambda: self.safe(self.stop))
         self.refresh()
         self.refresh_timer = QTimer(self)
         self.refresh_timer.setInterval(200)
@@ -99,6 +108,11 @@ class Application(QMainWindow):
 
     def refresh(self):
         self.tasks.render(self.store.tasks())
+        summary = self.store.focus_summary()
+        self.summary.setText(
+            f"Overall saved focus: {format_duration(summary['focus_seconds'])}   •   "
+            f"Completed sessions: {summary['session_count']}")
+        self.history.render(self.store.session_history())
 
     def rename(self):
         task_id = self.tasks.selected_id()
@@ -118,6 +132,10 @@ class Application(QMainWindow):
         if self.confirm('Delete task', 'Delete this task? Saved focus sessions will be kept.'):
             self.controller.delete(task_id)
             self.refresh()
+
+    def stop(self):
+        self.controller.stop()
+        self.refresh()
 
     def start(self):
         self.controller.start(self.tasks.selected_id())

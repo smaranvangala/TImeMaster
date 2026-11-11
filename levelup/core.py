@@ -48,7 +48,28 @@ class Store:
                 (title, utc_now())).lastrowid
 
     def tasks(self):
-        return self.connection.execute('SELECT * FROM tasks ORDER BY completed, id').fetchall()
+        return self.connection.execute('''
+            SELECT tasks.*, COALESCE(totals.focus_seconds, 0) AS focus_seconds
+            FROM tasks LEFT JOIN (
+                SELECT task_id, SUM(seconds) AS focus_seconds
+                FROM sessions GROUP BY task_id
+            ) AS totals ON totals.task_id = tasks.id
+            ORDER BY tasks.completed, tasks.id
+        ''').fetchall()
+
+    def focus_summary(self):
+        """Include every saved session, including those belonging to deleted tasks."""
+        return self.connection.execute('''
+            SELECT COALESCE(SUM(seconds), 0) AS focus_seconds,
+                   COUNT(*) AS session_count FROM sessions
+        ''').fetchone()
+
+    def session_history(self):
+        return self.connection.execute('''
+            SELECT sessions.*, tasks.title AS task_title
+            FROM sessions LEFT JOIN tasks ON tasks.id = sessions.task_id
+            ORDER BY sessions.started_at DESC, sessions.id DESC
+        ''').fetchall()
 
     def rename_task(self, task_id, title):
         title = self.validate_title(title)

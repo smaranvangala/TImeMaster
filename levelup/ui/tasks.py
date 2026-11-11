@@ -1,4 +1,6 @@
 """Task and focus widgets emit user intent; they do not mutate storage."""
+from .formatting import format_duration
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
@@ -34,13 +36,14 @@ class TasksPage(QWidget):
         row.addWidget(self.add_button)
         layout.addLayout(row)
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(['Task', 'Status'])
+        self.tree.setHeaderLabels(['Task', 'Status', 'Saved focus'])
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tree.setAccessibleName('Tasks')
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.tree, 1)
         row = QHBoxLayout()
         for name, text, signal in [
@@ -69,7 +72,8 @@ class TasksPage(QWidget):
         selected_id = selected[0].data(0, Qt.ItemDataRole.UserRole) if selected else None
         self.tree.clear()
         for task in tasks:
-            item = QTreeWidgetItem([task['title'], 'Done' if task['completed'] else 'Open'])
+            item = QTreeWidgetItem([task['title'], 'Done' if task['completed'] else 'Open',
+                                        format_duration(task['focus_seconds'])])
             item.setData(0, Qt.ItemDataRole.UserRole, task['id'])
             self.tree.addTopLevelItem(item)
             if task['id'] == selected_id:
@@ -108,7 +112,6 @@ class FocusPanel(QWidget):
         layout.addWidget(self.status)
 
     def render(self, elapsed, title, status):
-        seconds = int(elapsed)
-        self.clock_label.setText(f'{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}')
+        self.clock_label.setText(format_duration(elapsed))
         self.task_label.setText(title)
         self.status.setText(status)

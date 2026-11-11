@@ -116,6 +116,8 @@ class InterfaceTests(unittest.TestCase):
         reopened = Store(self.path)
         try:
             self.assertEqual(len(reopened.tasks()), 1)
+            self.assertEqual(reopened.focus_summary()['focus_seconds'], 12)
+            self.assertEqual(reopened.focus_summary()['session_count'], 1)
             self.assertEqual(reopened.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 12)
             self.assertEqual(reopened.connection.execute('PRAGMA user_version').fetchone()[0], 1)
         finally:
@@ -133,8 +135,44 @@ class InterfaceTests(unittest.TestCase):
         self.assertTrue(self.controller.timer.active)
         self.assertFalse(self.controller.timer.running)
         self.assertEqual(self.window.focus.status.text(), 'Paused')
+        self.assertIn('Completed sessions: 0', self.window.summary.text())
+        self.assertEqual(self.window.history.tree.topLevelItemCount(), 0)
         self.click(self.window.focus.stop_button)
+        self.assertIn('Completed sessions: 1', self.window.summary.text())
+        self.assertEqual(self.window.history.tree.topLevelItemCount(), 1)
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 8)
+
+    def test_totals_history_refresh_and_reopen(self):
+        task_id = self.add_selected()
+        for stop_time in (10, 30):
+            self.click(self.window.focus.start_button)
+            self.now[0] = stop_time
+            self.click(self.window.focus.stop_button)
+        self.assertIn('00:00:30', self.window.summary.text())
+        self.assertIn('Completed sessions: 2', self.window.summary.text())
+        self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(2), '00:00:30')
+        self.click(self.window.navigation['Session history'])
+        self.assertIs(self.window.pages.currentWidget(), self.window.history)
+        self.assertEqual(self.window.history.tree.topLevelItemCount(), 2)
+        item = self.window.history.tree.topLevelItem(0)
+        self.assertEqual(item.text(0), 'Read')
+        self.assertTrue(item.text(1))
+        self.assertTrue(item.text(2))
+        self.assertEqual(item.text(3), '00:00:20')
+        self.window.close()
+        self.store = Store(self.path)
+        self.controller = Controller(self.store, FocusTimer(lambda: self.now[0]))
+        self.window = Application(self.store, self.controller)
+        self.window.show()
+        self.assertIn('00:00:30', self.window.summary.text())
+        self.assertEqual(self.window.history.tree.topLevelItemCount(), 2)
+        self.store.rename_task(task_id, 'New name')
+        self.window.refresh()
+        self.assertEqual(self.window.history.tree.topLevelItem(0).text(0), 'New name')
+        self.store.delete_task(task_id)
+        self.window.refresh()
+        self.assertIn('00:00:30', self.window.summary.text())
+        self.assertEqual(self.window.history.tree.topLevelItem(0).text(0), 'Deleted task')
 
     def test_existing_phase_one_database_and_navigation(self):
         self.store.add_task('Existing task')
@@ -143,7 +181,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(0), 'Existing task')
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 20)
         for name, button in self.window.navigation.items():
-            self.assertEqual(button.isEnabled(), name == 'Tasks')
+            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history'))
         with patch.dict(os.environ, {'LOCALAPPDATA': self.directory.name}):
             self.assertEqual(default_database(), Path(self.directory.name) / 'LevelUp' / 'levelup.sqlite3')
 
