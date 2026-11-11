@@ -11,7 +11,7 @@
 - Qt tests use offscreen rendering, temporary databases and mocked modal dialogs.
 - SQL uses bound parameters and transactions. Preserve history on task deletion.
 - Preserve %LOCALAPPDATA%/LevelUp/levelup.sqlite3 and schema version 3. Versioned migrations must be transactional; never reset user data or downgrade a newer schema.
-- Keep dependencies/explanations concise. Only implemented features appear in navigation. Phase 5 is authorized; further feature work requires approval.
+- Keep dependencies/explanations concise. Only implemented features appear in navigation. The five-phase plan is implemented; further feature work requires approval.
 - Totals/history are SQL-derived from sessions; never add duplicate counters. Include deleted-task sessions in overall totals. QTimer must not run database queries.
 - XP rules live in progression.py: 1 XP per whole minute per saved session, 100 XP per level from level 1; no task completion bonus. Unique session ledger awards and session inserts share a transaction.
 - achievements.py defines stable milestone keys/thresholds. Unlocks persist once in achievement_unlocks, within the same transaction as session/XP writes. No bonus XP or duplicate metric counters.
@@ -19,5 +19,5 @@
 - exports.py owns atomic SQLite backups/CSV exports. Never overwrite live DB/sidecars. CSV titles neutralize spreadsheet formulas; backup preserves original data.
 - Build: install requirements-build.txt, then on Windows run scripts/build-windows.ps1 (-Installer needs Inno Setup 6). TimeMaster.spec is directory mode; no cross compilation. See RELEASE.md.
 - Smoke: `python -m levelup --smoke-test` or packaged executable with --smoke-test; always temporary data.
-- User authorized committing/pushing the final Phase 5 tooling and running Windows CI. Never publish a release or claim Windows validation based on Linux builds. Keep version in __init__.py and installer synchronized.
+- User authorized committing/pushing the final Phase 5 tooling and running Windows CI. Windows CI run 42961639032 verified the release candidate; manual visual checks remain. Do not publish a public Release or sign binaries without authorization. Keep version in __init__.py and installer synchronized.
 - After authorized work: test, update PROJECT_STATUS.md, recommend a commit, stop.

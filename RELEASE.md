@@ -1,7 +1,8 @@
 # TimeMaster 0.1.0 — release candidate
 
-This is a test release, not a signed/public production release. Windows build,
-install/uninstall and manual accessibility checks must pass before distribution.
+This is an unsigned release candidate. Automated Windows build and installer
+lifecycle validation passed. Manual visual/accessibility and clean-PC interaction
+checks remain pending; public distribution/license review is separate.
 The source remains runnable as `python -m levelup`.
 
 ## Build on Windows (x64)
@@ -73,7 +74,21 @@ To restore a SQLite backup:
 Schema stays v3 in Phase 5. First-ever launch with a v1/v2 database upgrades it;
 make a backup before that upgrade. No automatic destructive restore/import UI.
 
-## Windows release checklist (pending)
+## Verified Windows build
+- Tested application commit: `164e12862671a2603ca05be9122d49ead7b81339`.
+- [Workflow results](https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032).
+- [Windows artifact download](https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032/artifacts/13829506487).
+- Windows x64/Python 3.12: 38 tests passed, one skipped because system IANA
+  timezone data was unavailable. All 39 tests passed on Linux, including DST.
+- Portable startup, installer build, silent install, installed startup, reinstall,
+  uninstall and byte-for-byte saved-data retention passed.
+- Artifact SHA256 hashes independently verified after download:
+  - Installer: `47ab284fd459814ac6e395d20e3e0f2987e1e04df3536bfc3c36c60b38e21bdb`
+  - Portable ZIP: `7a87cb429e69490220d9a536ed037872f03eb8a56b8c3d47939de6005e0e358c`
+- Windows portable archive inspected: executable/dependencies present, no user DB.
+- GitHub Actions artifacts expire; rerun the workflow to regenerate packages.
+
+## Manual Windows release checklist (remaining)
 - Run automated tests and the packaged `TimeMaster.exe --smoke-test`.
 - Launch the portable package on a clean Windows PC without Python installed.
 - Exercise task creation/rename/selection/completion/reopen/delete, Enter-to-add,

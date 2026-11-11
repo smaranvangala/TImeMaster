@@ -1,5 +1,18 @@
 # TimeMaster (LevelUp)
 A local Windows desktop task and focus tracker using PySide6 and SQLite.
+
+## Download the Windows release candidate
+[Download Windows installer and portable ZIP](https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032/artifacts/13829506487)
+(GitHub sign-in may be required; Actions artifacts have limited retention.)
+Extract the artifact archive. Run `TimeMaster-0.1.0-setup.exe`, or extract
+`TimeMaster-portable.zip` and run `TimeMaster/TimeMaster.exe`. Python is not
+required for these Windows x64 packages. Keep the portable folder intact.
+
+The Windows workflow verified build, startup, install/reinstall/uninstall and
+saved-data retention. This is an unsigned release candidate; manual visual and
+accessibility testing remains pending. Back up existing data before first use.
+See RELEASE.md for details and build-your-own instructions.
+
 Python 3.11+ is required. The Phase 1 Tkinter interface has been replaced;
 task data, session history and count-up timer behavior are preserved.
 
@@ -152,7 +165,7 @@ Build dependencies are separate in requirements-build.txt; normal source runs
 still require only requirements.txt. `python -m levelup --smoke-test` validates
 Qt startup using temporary data and exits without opening your real database.
 
-Phase 5 tooling is approved for publishing and Windows build validation. The Windows executable
-and installer still require Windows validation; this workspace runs Linux.
+Phase 5 tooling is approved for publishing and Windows build validation. The Windows build and installer lifecycle checks passed in GitHub Actions.
+Native visual/accessibility checks remain manual.
 Skills, cloud sync and automatic updates are future work and are not shown as
 nonfunctional navigation items. This release candidate implements the five-phase plan.

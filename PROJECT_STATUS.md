@@ -2,10 +2,10 @@
 Updated: 2026-11-11
 
 ## Current phase
-Phase 5 release tooling/data controls implemented locally. Final source release-candidate review completed; Windows platform
-validation remains pending; NOT a validated Windows release. Uncommitted/unpushed.
-User approved commit/push and running the Windows build workflow. Public release
-publishing/signing is not authorized. Further feature work requires review.
+All five planned development phases implemented. Windows x64 release candidate
+0.1.0 built and tested by GitHub Actions; portable/installer artifacts available.
+Automated release verification complete; manual visual/accessibility testing
+remains. No signed/public production release published. Further features require approval.
 
 ## Completed features
 - Phase 1: PySide6 task CRUD/completion, SQLite persistence, monotonic focus
@@ -60,11 +60,17 @@ publishing/signing is not authorized. Further feature work requires review.
   Native Windows/Inno Setup execution unavailable locally. Windows workflow/installer prepared; native execution remains pending.
 - Added automatic clean-runner install/reinstall/uninstall and saved-data
   retention test. No workflow has been published/run yet.
-- Windows manual release/accessibility/install/uninstall/clean-PC tests pending.
+- Windows automated tests: 38 passed, 1 skipped (system IANA timezone data
+  unavailable); Linux all 39 pass including DST. Manual visual/accessibility and
+  clean-PC interaction checks remain pending.
+- Downloaded artifact verified: installer and portable SHA256 match build manifest;
+  Windows executable/dependencies present and no user databases bundled.
+- Run: https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032
+- Download: https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032/artifacts/13829506487
 
 ## Known limitations / release gates
-- Windows distribution not built or tested in this Linux environment. Run the
-  manual workflow after approval/push or build on Windows, then follow RELEASE.md.
+- Windows build and automated installer checks passed on GitHub's Windows runner.
+  Manual visual/accessibility and real Windows user-data validation still pending.
 - Builds unsigned. No public release published; no updater or crash recovery.
 - Initial THIRD_PARTY_NOTICES.md is not a complete bundled license inventory.
   Collect applicable upstream licenses/attributions and review redistribution
@@ -77,15 +83,17 @@ publishing/signing is not authorized. Further feature work requires review.
 - History/analytics read selected session rows; large-dataset pagination deferred.
 - Deleted task names unavailable; analytics filters not persisted.
 
-## Git / next step
+## Git / final handoff
 - Working repo /workspace/TImeMaster; root-level copies are historical.
 - Origin https://github.com/smaranvangala/TImeMaster.git, main.
-- Phase 4 published: 9d0bb2a1b01e218d52a0764642068707119df036.
-- User approved committing/pushing Phase 5 and running Windows CI; generated
-  build/dist remain ignored. Windows results will be recorded after the run.
-- Recommended commit: `build: prepare Windows packaging and saved-data tools`.
-- Next: review local changes, approve commit/push, build on Windows or manually
-  trigger Windows build workflow, download test artifacts, run RELEASE.md checks
-  with database backups. Do not treat Linux smoke as Windows release approval.
-- Start a fresh Codex session after this handoff to limit context/usage; read
-  AGENTS.md and PROJECT_STATUS.md first, then relevant files only.
+- Tested release-tooling commit: 164e12862671a2603ca05be9122d49ead7b81339, pushed.
+- User approved commit/push and Windows build execution. Final documentation
+  update records verified results; no public Release or signing performed.
+- Run 42961639032 and artifact 13829506487 contain portable ZIP, installer,
+  dependency inventory and SHA256 manifest. Artifacts have limited retention.
+- Next: download artifact, back up local data, manually test Windows visuals,
+  scaling, keyboard/screen reader and real-data workflow (RELEASE.md). Decide
+  distribution license/signing only if publishing publicly. No additional phase
+  or feature work is started automatically.
+- Start a fresh Codex session for follow-up. Read AGENTS.md/PROJECT_STATUS.md first;
+  source tests/build results are recorded here so re-analysis is unnecessary.
