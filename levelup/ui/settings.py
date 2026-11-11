@@ -1,6 +1,7 @@
 """Saved-data controls using shared cards; filesystem actions remain in exports.py."""
 from PySide6.QtCore import Signal, Qt
-from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
+from PySide6.QtGui import QTextOption
+from PySide6.QtWidgets import QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 from levelup import __version__
 from .components import Card, PageHeader, ResponsiveGrid, label
 from .icons import icon
@@ -20,8 +21,14 @@ class SettingsPage(QWidget):
         identity = Card()
         identity.body.addWidget(label(f'TimeMaster {__version__}', 'sectionTitle'))
         identity.body.addWidget(label('LOCAL WORKSPACE', 'badge'))
-        path = label(f'Data location: {database}', 'muted')
-        path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        path = QPlainTextEdit(f'Data location: {database}')
+        path.setReadOnly(True)
+        path.setAccessibleName('Data location')
+        path.setMinimumHeight(64)
+        path.setMaximumHeight(80)
+        option = path.document().defaultTextOption()
+        option.setWrapMode(QTextOption.WrapMode.WrapAnywhere)
+        path.document().setDefaultTextOption(option)
         identity.body.addWidget(path)
         layout.addWidget(identity)
         grid = ResponsiveGrid(minimum=260, maximum_columns=2)
