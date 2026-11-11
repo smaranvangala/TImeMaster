@@ -1,12 +1,16 @@
 # LevelUp conventions
-- Windows desktop application using Python 3.11+, Tkinter/ttk, and SQLite. No runtime third-party packages.
-- Run from repository root: `python -m levelup` (Windows: `py -m levelup`).
+- Windows desktop application using Python 3.11+, PySide6 and SQLite.
+- Working repository: /workspace/TImeMaster; workspace-root copies are historical.
+- Read PROJECT_STATUS.md first. Implement only the authorized scope.
+- Setup: `python -m venv .venv`, then use its Python to `-m pip install -r requirements.txt`.
+- Run: `python -m levelup` from repository root using the virtual environment.
 - Test: `python -m unittest discover -s levelup/tests -v`.
-- Syntax check: `python -m compileall -q levelup`.
-- Read PROJECT_STATUS.md first. Implement only the authorized phase; stop after tests and status update.
-- Keep storage/timer logic in levelup/core.py, desktop UI in levelup/app.py. Inject a clock in timer tests; never use sleep for timing tests.
-- SQL uses bound parameters; writes use transactions. Preserve session history when deleting tasks.
-- Store user data outside the source tree, in %LOCALAPPDATA%/LevelUp on Windows.
-- Future schema changes require explicit versioned migrations; do not reset existing databases.
-- Keep dependencies and explanations small. Do not add XP, analytics, or packaging before their phase is approved.
-- After each phase: run relevant checks, update PROJECT_STATUS.md, recommend a commit, and wait.
+- Syntax: `python -m compileall -q levelup`; on Linux use `.venv/bin/python`.
+- core.py owns storage/timer; controller.py owns application actions/guards; app.py composes Qt views/dialogs; ui/ holds widgets/theme. Widgets emit intent via signals.
+- QTimer only refreshes the display; FocusTimer's monotonic clock calculates elapsed time. Inject clocks in tests; never sleep for timer tests.
+- Qt tests use offscreen rendering, temporary databases and mocked modal dialogs.
+- SQL uses bound parameters and transactions. Preserve history on task deletion.
+- Preserve %LOCALAPPDATA%/LevelUp/levelup.sqlite3 and schema version 1. Future schema changes require versioned migrations; never reset user data.
+- Keep dependencies/explanations concise. Future sidebar sections stay disabled until authorized. Do not implement Phase 2 yet.
+- User authorized committing/pushing the PySide6 migration for Windows manual testing. Phase 2 still requires separate approval.
+- After authorized work: test, update PROJECT_STATUS.md, recommend a commit, stop.

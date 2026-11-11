@@ -1,153 +1,174 @@
-"""LevelUp desktop entry point: python -m levelup."""
+"""Qt application composition and dialogs; run with python -m levelup."""
 import os
 import sqlite3
-import tkinter as tk
+import sys
 from pathlib import Path
-from tkinter import messagebox, simpledialog, ttk
 
-from .core import FocusTimer, Store
+from PySide6.QtCore import QTimer, Qt, Slot
+from PySide6.QtWidgets import (
+    QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
+    QMessageBox, QPushButton, QStackedWidget, QVBoxLayout, QWidget,
+)
+
+from .controller import Controller
+from .core import Store
+from .ui.tasks import FocusPanel, TasksPage
+from .ui.theme import DARK_THEME
 
 
 def default_database():
+    # Preserve the Tkinter application's path so existing data opens unchanged.
     base = Path(os.environ.get('LOCALAPPDATA', Path.home() / '.local' / 'share'))
     return base / 'LevelUp' / 'levelup.sqlite3'
 
 
-class Application:
-    def __init__(self, root, store):
-        self.root, self.store = root, store
-        self.timer = FocusTimer()
-        root.title('LevelUp — Focus & Tasks')
-        root.geometry('760x540')
-        root.minsize(620, 420)
-        panel = ttk.Frame(root, padding=20)
-        panel.pack(fill='both', expand=True)
-        ttk.Label(panel, text='LevelUp', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
-        ttk.Label(panel, text='Choose a task. Build your focus.').pack(anchor='w', pady=(0, 16))
-        entry_row = ttk.Frame(panel)
-        entry_row.pack(fill='x')
-        self.title = ttk.Entry(entry_row)
-        self.title.pack(side='left', fill='x', expand=True)
-        self.title.bind('<Return>', lambda event: self.safe(self.add))
-        ttk.Button(entry_row, text='Add task', command=lambda: self.safe(self.add)).pack(side='left', padx=(8, 0))
-        self.tree = ttk.Treeview(panel, columns=('status',), selectmode='browse')
-        self.tree.heading('#0', text='Task')
-        self.tree.heading('status', text='Status')
-        self.tree.column('status', width=100, stretch=False)
-        self.tree.pack(fill='both', expand=True, pady=12)
-        actions = ttk.Frame(panel)
-        actions.pack(fill='x')
-        for label, action in [('Rename', self.rename), ('Complete / Reopen', self.toggle), ('Delete', self.delete)]:
-            ttk.Button(actions, text=label, command=lambda a=action: self.safe(a)).pack(side='left', padx=(0, 8))
-        self.focus_label = ttk.Label(panel, text='No active session')
-        self.focus_label.pack(anchor='w', pady=(18, 0))
-        self.clock_label = ttk.Label(panel, text='00:00:00', font=('Segoe UI', 28))
-        self.clock_label.pack(anchor='w')
-        controls = ttk.Frame(panel)
-        controls.pack(fill='x')
-        for label, action in [('Start', self.start), ('Pause / Resume', self.pause), ('Stop & Save', self.stop)]:
-            ttk.Button(controls, text=label, command=lambda a=action: self.safe(a)).pack(side='left', padx=(0, 8))
-        self.status = ttk.Label(panel, text='Ready')
-        self.status.pack(anchor='w', pady=(10, 0))
-        root.protocol('WM_DELETE_WINDOW', lambda: self.safe(self.close))
+class Application(QMainWindow):
+    def __init__(self, store, controller=None):
+        super().__init__()
+        self.store = store
+        self.controller = controller if controller is not None else Controller(store)
+        self.setWindowTitle('TimeMaster — LevelUp')
+        self.resize(1020, 700)
+        self.setMinimumSize(840, 600)
+        self.setStyleSheet(DARK_THEME)
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QHBoxLayout(central)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(24)
+        sidebar = QFrame()
+        sidebar.setObjectName('sidebar')
+        sidebar.setFixedWidth(190)
+        navigation = QVBoxLayout(sidebar)
+        navigation.setContentsMargins(16, 22, 16, 22)
+        brand = QLabel('LevelUp')
+        brand.setObjectName('brand')
+        navigation.addWidget(brand)
+        navigation.addWidget(QLabel('TimeMaster'))
+        navigation.addSpacing(28)
+        self.pages = QStackedWidget()
+        self.tasks = TasksPage()
+        self.pages.addWidget(self.tasks)
+        self.navigation = {}
+        for name in ('Dashboard', 'Skills', 'Tasks', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
+            button = QPushButton(name.replace('&', '&&'))
+            self.navigation[name] = button
+            if name == 'Tasks':
+                button.setObjectName('primary')
+                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.tasks))
+            else:
+                button.setEnabled(False)
+                button.setToolTip('Planned for a later phase')
+            navigation.addWidget(button)
+        navigation.addStretch()
+        layout.addWidget(sidebar)
+        content = QVBoxLayout()
+        content.addWidget(self.pages, 1)
+        self.focus = FocusPanel()
+        content.addWidget(self.focus)
+        layout.addLayout(content, 1)
+        self.tasks.add_requested.connect(self.add)
+        self.tasks.rename_requested.connect(lambda: self.safe(self.rename))
+        self.tasks.toggle_requested.connect(lambda: self.safe(self.toggle))
+        self.tasks.delete_requested.connect(lambda: self.safe(self.delete))
+        self.focus.start_requested.connect(lambda: self.safe(self.start))
+        self.focus.pause_requested.connect(lambda: self.safe(self.controller.pause))
+        self.focus.stop_requested.connect(lambda: self.safe(self.controller.stop))
         self.refresh()
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.setInterval(200)
+        self.refresh_timer.timeout.connect(self.tick)
+        self.refresh_timer.start()
         self.tick()
 
     def safe(self, action):
         try:
             action()
         except (ValueError, sqlite3.Error) as error:
-            messagebox.showerror('LevelUp', str(error), parent=self.root)
+            QMessageBox.critical(self, 'LevelUp', str(error))
+        finally:
+            self.tick()
 
-    def selected(self):
-        selected = self.tree.selection()
-        if not selected:
-            raise ValueError('Select a task first.')
-        return int(selected[0])
+    @Slot(str)
+    def add(self, title):
+        def action():
+            self.controller.add(title)
+            self.tasks.title.clear()
+            self.refresh()
+        self.safe(action)
 
     def refresh(self):
-        selected = self.tree.selection()
-        self.tree.delete(*self.tree.get_children())
-        for task in self.store.tasks():
-            self.tree.insert('', 'end', iid=str(task['id']), text=task['title'],
-                             values=('Done' if task['completed'] else 'Open',))
-        if selected and self.tree.exists(selected[0]):
-            self.tree.selection_set(selected[0])
-
-    def add(self):
-        self.store.add_task(self.title.get())
-        self.title.delete(0, 'end')
-        self.refresh()
+        self.tasks.render(self.store.tasks())
 
     def rename(self):
-        task_id = self.selected()
-        title = simpledialog.askstring('Rename task', 'Task title:',
-                                       initialvalue=self.tree.item(str(task_id), 'text'), parent=self.root)
-        if title is not None:
-            self.store.rename_task(task_id, title)
+        task_id = self.tasks.selected_id()
+        task = self.controller.task(task_id)
+        title, accepted = QInputDialog.getText(self, 'Rename task', 'Task title:', text=task['title'])
+        if accepted:
+            self.controller.rename(task_id, title)
             self.refresh()
 
     def toggle(self):
-        task_id = self.selected()
-        self.guard_active(task_id)
-        completed = self.tree.item(str(task_id), 'values')[0] == 'Done'
-        self.store.set_completed(task_id, not completed)
+        self.controller.toggle(self.tasks.selected_id())
         self.refresh()
 
-    def guard_active(self, task_id):
-        if self.timer.active and self.timer.task_id == task_id:
-            raise ValueError('Stop and save this task’s session first.')
-
     def delete(self):
-        task_id = self.selected()
-        self.guard_active(task_id)
-        if messagebox.askyesno('Delete task', 'Delete this task? Saved focus sessions will be kept.', parent=self.root):
-            self.store.delete_task(task_id)
+        task_id = self.tasks.selected_id()
+        self.controller.guard_active(task_id)
+        if self.confirm('Delete task', 'Delete this task? Saved focus sessions will be kept.'):
+            self.controller.delete(task_id)
             self.refresh()
 
     def start(self):
-        task_id = self.selected()
-        if self.tree.item(str(task_id), 'values')[0] == 'Done':
-            raise ValueError('Reopen this task before starting a focus session.')
-        self.timer.start(task_id)
-        self.status.config(text='Focusing')
+        self.controller.start(self.tasks.selected_id())
 
-    def pause(self):
-        if self.timer.running:
-            self.timer.pause()
-            self.status.config(text='Paused')
-        elif self.timer.active:
-            self.timer.resume()
-            self.status.config(text='Focusing')
+    def confirm(self, title, message):
+        return QMessageBox.question(
+            self, title, message, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
 
-    def stop(self):
-        if self.timer.active:
-            self.timer.stop(self.store)
-            self.status.config(text='Session saved')
-
+    @Slot()
     def tick(self):
-        seconds = int(self.timer.elapsed)
-        self.clock_label.config(text=f'{seconds // 3600:02}:{seconds // 60 % 60:02}:{seconds % 60:02}')
-        text = self.tree.item(str(self.timer.task_id), 'text') if self.timer.active else 'No active session'
-        self.focus_label.config(text=text)
-        self.root.after(200, self.tick)
+        timer = self.controller.timer
+        title = 'No active session'
+        if timer.active:
+            # Use rendered task data; refreshing the clock never queries SQLite.
+            for index in range(self.tasks.tree.topLevelItemCount()):
+                item = self.tasks.tree.topLevelItem(index)
+                if item.data(0, Qt.ItemDataRole.UserRole) == timer.task_id:
+                    title = item.text(0)
+                    break
+        status = 'Paused' if timer.active and not timer.running else self.controller.status
+        self.focus.render(timer.elapsed, title, status)
 
-    def close(self):
-        if self.timer.active:
-            if not messagebox.askyesno('Close LevelUp', 'Save the current focus session and exit?', parent=self.root):
-                return
-            self.stop()
-        self.store.close()
-        self.root.destroy()
+    def closeEvent(self, event):
+        try:
+            if self.controller.timer.active:
+                if not self.confirm('Close LevelUp', 'Save the current focus session and exit?'):
+                    event.ignore()
+                    return
+                self.controller.stop()
+            self.store.close()
+        except (ValueError, sqlite3.Error) as error:
+            event.ignore()
+            self.tick()
+            QMessageBox.critical(self, 'LevelUp', str(error))
+            return
+        self.refresh_timer.stop()
+        event.accept()
 
 
 def main():
-    root = tk.Tk()
+    application = QApplication(sys.argv)
+    application.setStyle('Fusion')
+    store = None
     try:
         store = Store(default_database())
-        Application(root, store)
+        window = Application(store)
     except (OSError, sqlite3.Error) as error:
-        messagebox.showerror('LevelUp startup failed', str(error), parent=root)
-        root.destroy()
+        QMessageBox.critical(None, 'LevelUp startup failed', str(error))
+        if store is not None:
+            store.close()
         return
-    root.mainloop()
+    window.show()
+    application.exec()
