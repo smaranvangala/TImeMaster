@@ -75,17 +75,18 @@ class RedesignTests(unittest.TestCase):
             self.window.resize(*size)
             self.settle()
             for name, page in self.window.routes.items():
-                self.window.show_page(page)
-                self.settle()
-                self.assertTrue(self.window.navigation[name].isChecked())
-                self.assertTrue(self.window.navigation[name].accessibleName())
-                self.assertFalse(self.window.navigation[name].icon().isNull())
-                self.assertEqual(self.window.page_scroll.horizontalScrollBar().maximum(), 0, (size, name))
-                for button in (self.window.focus.start_button, self.window.focus.pause_button,
-                               self.window.focus.stop_button):
-                    origin = button.mapTo(self.window, QPoint(0, 0))
-                    self.assertTrue(self.window.rect().contains(origin), (size, name))
-                    self.assertTrue(self.window.rect().contains(origin + QPoint(button.width()-1, button.height()-1)), (size, name))
+                with self.subTest(size=size, page=name):
+                    self.window.show_page(page)
+                    self.settle()
+                    self.assertTrue(self.window.navigation[name].isChecked())
+                    self.assertTrue(self.window.navigation[name].accessibleName())
+                    self.assertFalse(self.window.navigation[name].icon().isNull())
+                    self.assertEqual(self.window.page_scroll.horizontalScrollBar().maximum(), 0, (size, name))
+                    for button in (self.window.focus.start_button, self.window.focus.pause_button,
+                                   self.window.focus.stop_button):
+                        origin = button.mapTo(self.window, QPoint(0, 0))
+                        self.assertTrue(self.window.rect().contains(origin), (size, name))
+                        self.assertTrue(self.window.rect().contains(origin + QPoint(button.width()-1, button.height()-1)), (size, name))
         self.assertTrue(self.controller.timer.active)
         self.assertFalse(self.controller.timer.running)
         self.assertEqual(self.controller.timer.elapsed, 12)

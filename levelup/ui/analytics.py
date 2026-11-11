@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 )
 
 from .formatting import format_duration
-from .components import PageHeader, label
+from .components import PageHeader, ResponsiveGrid, label
 from .theme import COLORS
 
 
@@ -70,21 +70,26 @@ class AnalyticsPage(QWidget):
         layout.setSpacing(16)
         layout.addWidget(PageHeader('Patterns / Insights', 'See where your focus takes you.',
                                     'Saved sessions by local start date. Monday-based weeks, up to 366 days at a time.'))
-        dates = QHBoxLayout()
+        dates = ResponsiveGrid(minimum=210, maximum_columns=3)
         self.start = QDateEdit(QDate.currentDate().addDays(-29))
         self.end = QDateEdit(QDate.currentDate())
-        for caption, widget in (('From', self.start), ('Through', self.end)):
-            widget.setCalendarPopup(True)
-            widget.setDisplayFormat('yyyy-MM-dd')
-            widget.setAccessibleName(caption + ' date')
-            dates.addWidget(QLabel(caption))
-            dates.addWidget(widget)
         self.grouping = QComboBox()
         self.grouping.addItem('Daily', 'daily')
         self.grouping.addItem('Weekly', 'weekly')
         self.grouping.setAccessibleName('Group focus totals')
-        dates.addWidget(self.grouping)
-        layout.addLayout(dates)
+        for caption, widget in (('From', self.start), ('Through', self.end), ('Group by', self.grouping)):
+            if isinstance(widget, QDateEdit):
+                widget.setCalendarPopup(True)
+                widget.setDisplayFormat('yyyy-MM-dd')
+                widget.setAccessibleName(caption + ' date')
+            field = QWidget()
+            field_layout = QVBoxLayout(field)
+            field_layout.setContentsMargins(0, 0, 0, 0)
+            field_layout.setSpacing(6)
+            field_layout.addWidget(label(caption, 'muted'))
+            field_layout.addWidget(widget)
+            dates.add(field)
+        layout.addWidget(dates)
         row = QHBoxLayout()
         self.task = QComboBox()
         self.task.setMinimumContentsLength(10)
