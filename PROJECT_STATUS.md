@@ -30,7 +30,17 @@ The completed five-phase app remains intact; this work changes presentation only
   focus controls reachable, no page-level horizontal overflow, compact keyboard
   navigation, last achievement reachable by scroll, card/detail consistency.
 - Offscreen screenshots reviewed at 1280x900 and 760x680 across six main views.
-- Syntax/diff checks and source smoke pass. Windows branch build pending.
+- Syntax/diff checks and source smoke pass. Linux PyInstaller build includes SVG
+  assets and passes packaged smoke. Windows branch run 42968767298 SUCCESS:
+  42 tests pass, 1 timezone-data skip (same baseline skip), packaged startup,
+  installer build/install/reinstall/uninstall and saved-data retention pass.
+- Native Windows tests caught font-metric card widths, date-filter row widths
+  and a long database path; fixed with measured card reflow, responsive filter
+  fields and a wrap-anywhere selectable path field. All page layout checks pass.
+- Tested UI commit: ef843f59a584b318b1c5e12ffeea3ead6b0d9ae4.
+- Build: https://github.com/smaranvangala/TImeMaster/actions/runs/42968767298
+- Review package: https://github.com/smaranvangala/TImeMaster/actions/runs/42968767298/artifacts/13832975184
+  Use the portable ZIP for visual review; artifacts have limited retention.
 - Real Windows visuals/high-DPI still require user review before any main merge.
 
 ## Completed features
@@ -73,7 +83,7 @@ The completed five-phase app remains intact; this work changes presentation only
 - QTimer only refreshes display; no DB reads/aggregation on ticks. Analytics
   attributes entire duration to local start date; filters reset on restart.
 
-## Validation
+## Original release validation
 - PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (39 tests).
 - PASS: compileall, git diff --check and pip check.
 - New tests: consistent backup/reopen with XP/unlocks retained, Unicode/quoted/
@@ -102,8 +112,8 @@ The completed five-phase app remains intact; this work changes presentation only
   Collect applicable upstream licenses/attributions and review redistribution
   requirements against the actual Windows bundle before public distribution.
   Project owner must choose TimeMaster's own distribution license too.
-- Nonfunctional Dashboard/Skills navigation placeholders removed; these were
-  never implemented features. All five-phase functionality is retained.
+- Skills remains future work. A read-only Dashboard is added on the redesign
+  branch; all original five-phase functionality is retained.
 - Forced exit can lose unsaved timer; sleep follows monotonic clock. No automatic
   destructive restore UI. Native high-DPI/screen-reader behavior remains unverified.
 - History/analytics read selected session rows; large-dataset pagination deferred.
@@ -126,3 +136,11 @@ The completed five-phase app remains intact; this work changes presentation only
   or feature work is started automatically.
 - Start a fresh Codex session for follow-up. Read AGENTS.md/PROJECT_STATUS.md first;
   source tests/build results are recorded here so re-analysis is unnecessary.
+
+## Redesign handoff
+- All design work is committed/pushed on redesign/modern-ui. Main is unchanged.
+- Small commits cover design system, shell/screens, regression tests, native
+  Windows layout fixes and verification notes. No automatic merge is authorized.
+- Close the current app, back up saved data, then test the branch source or the
+  portable artifact above. Review visuals and all existing functionality before
+  explicitly approving any merge.

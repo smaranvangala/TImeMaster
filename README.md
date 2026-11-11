@@ -3,6 +3,11 @@ A local Windows desktop task and focus tracker using PySide6 and SQLite.
 
 ## Modern UI review branch
 The visual redesign lives on `redesign/modern-ui`; it is **not merged into main**.
+[Download the redesigned Windows test package](https://github.com/smaranvangala/TImeMaster/actions/runs/42968767298/artifacts/13832975184).
+Extract the artifact, then extract `TimeMaster-portable.zip` and run
+`TimeMaster/TimeMaster.exe` for visual review. Close your existing app and back
+up saved data first. GitHub sign-in may be required; artifacts expire.
+
 It adds a read-only dashboard, reusable cards, mint/charcoal styling, vector icons,
 progression and achievement views, compact navigation and a persistent focus dock.
 All task/session/XP/milestone/analytics/data rules and schema v3 are unchanged.
@@ -19,6 +24,9 @@ git switch --track origin/redesign/modern-ui
 If the branch already exists locally, use `git switch redesign/modern-ui` followed
 by `git pull --ff-only`. Back up your saved database before testing. Test at narrow
 and wide widths, use the dashboard shortcuts, and check every existing feature.
+The redesign passes 43 Linux tests and the Windows build/installer checks
+(42 tests passed, one system timezone-data skip). Windows visuals and feature
+behavior still need your approval before merging.
 Keyboard navigation remains available when the sidebar collapses to icons;
 buttons retain tooltips and accessible names. Long pages scroll independently.
 

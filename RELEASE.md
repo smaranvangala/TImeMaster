@@ -74,7 +74,18 @@ To restore a SQLite backup:
 Schema stays v3 in Phase 5. First-ever launch with a v1/v2 database upgrades it;
 make a backup before that upgrade. No automatic destructive restore/import UI.
 
-## Verified Windows build
+## Modern UI branch review build
+The redesign is on `redesign/modern-ui`, not main. Its Windows build passed:
+- [Workflow](https://github.com/smaranvangala/TImeMaster/actions/runs/42968767298).
+- [Review package](https://github.com/smaranvangala/TImeMaster/actions/runs/42968767298/artifacts/13832975184).
+- Tested UI commit: `ef843f59a584b318b1c5e12ffeea3ead6b0d9ae4`.
+- 42 tests passed, one existing IANA timezone-data skip; all 43 pass on Linux.
+- Portable startup, installer lifecycle and saved-data retention checks passed.
+Use the portable ZIP for visual testing. Keep the entire folder, close other
+TimeMaster instances and back up saved data. No merge to main until user approval.
+The original release results below refer to the previous visual design.
+
+## Verified original Windows build
 - Tested application commit: `164e12862671a2603ca05be9122d49ead7b81339`.
 - [Workflow results](https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032).
 - [Windows artifact download](https://github.com/smaranvangala/TImeMaster/actions/runs/42961639032/artifacts/13829506487).
