@@ -1,0 +1,12 @@
+# LevelUp conventions
+- Windows desktop application using Python 3.11+, Tkinter/ttk, and SQLite. No runtime third-party packages.
+- Run from repository root: `python -m levelup` (Windows: `py -m levelup`).
+- Test: `python -m unittest discover -s levelup/tests -v`.
+- Syntax check: `python -m compileall -q levelup`.
+- Read PROJECT_STATUS.md first. Implement only the authorized phase; stop after tests and status update.
+- Keep storage/timer logic in levelup/core.py, desktop UI in levelup/app.py. Inject a clock in timer tests; never use sleep for timing tests.
+- SQL uses bound parameters; writes use transactions. Preserve session history when deleting tasks.
+- Store user data outside the source tree, in %LOCALAPPDATA%/LevelUp on Windows.
+- Future schema changes require explicit versioned migrations; do not reset existing databases.
+- Keep dependencies and explanations small. Do not add XP, analytics, or packaging before their phase is approved.
+- After each phase: run relevant checks, update PROJECT_STATUS.md, recommend a commit, and wait.
