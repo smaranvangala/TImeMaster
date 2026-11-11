@@ -2,11 +2,12 @@
 import os
 import sqlite3
 import sys
+import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, Qt, Slot
 from PySide6.QtWidgets import (
-    QApplication, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
+    QApplication, QButtonGroup, QFileDialog, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
     QMessageBox, QPushButton, QStackedWidget, QVBoxLayout, QWidget,
 )
 
@@ -19,6 +20,8 @@ from .ui.formatting import format_duration
 from .ui.progress import ProgressPage
 from .ui.milestones import MilestonesPage
 from .ui.analytics import AnalyticsPage
+from .ui.settings import SettingsPage
+from .exports import backup_database, export_sessions
 
 
 def default_database():
@@ -62,12 +65,19 @@ class Application(QMainWindow):
         self.pages.addWidget(self.milestones)
         self.analytics = AnalyticsPage()
         self.pages.addWidget(self.analytics)
+        database = self.store.connection.execute('PRAGMA database_list').fetchone()[2]
+        self.settings = SettingsPage(database)
+        self.pages.addWidget(self.settings)
         self.navigation = {}
-        for name in ('Dashboard', 'Skills', 'Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
+        self.navigation_group = QButtonGroup(self)
+        self.navigation_group.setExclusive(True)
+        for name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
             button = QPushButton(name.replace('&', '&&'))
             self.navigation[name] = button
+            button.setCheckable(True)
+            self.navigation_group.addButton(button)
             if name == 'Tasks':
-                button.setObjectName('primary')
+                button.setChecked(True)
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.tasks))
             elif name == 'Session history':
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.history))
@@ -77,6 +87,8 @@ class Application(QMainWindow):
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.milestones))
             elif name == 'Analytics':
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.analytics))
+            elif name == 'Settings':
+                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.settings))
             else:
                 button.setEnabled(False)
                 button.setToolTip('Planned for a later phase')
@@ -99,6 +111,8 @@ class Application(QMainWindow):
         self.focus.pause_requested.connect(lambda: self.safe(self.controller.pause))
         self.focus.stop_requested.connect(lambda: self.safe(self.stop))
         self.analytics.filter_requested.connect(lambda: self.safe(self.refresh_analytics))
+        self.settings.backup_requested.connect(lambda: self.safe(self.backup))
+        self.settings.export_requested.connect(lambda: self.safe(self.export))
         self.refresh()
         self.refresh_timer = QTimer(self)
         self.refresh_timer.setInterval(200)
@@ -109,7 +123,7 @@ class Application(QMainWindow):
     def safe(self, action):
         try:
             action()
-        except (ValueError, sqlite3.Error) as error:
+        except (OSError, ValueError, sqlite3.Error) as error:
             QMessageBox.critical(self, 'LevelUp', str(error))
         finally:
             self.tick()
@@ -142,6 +156,19 @@ class Application(QMainWindow):
             self.analytics.show_error(str(error))
             return
         self.analytics.render(report)
+
+    def backup(self):
+        path, _ = QFileDialog.getSaveFileName(self, 'Back up saved data', 'TimeMaster-backup.sqlite3',
+                                             'SQLite backup (*.sqlite3)')
+        if path:
+            backup_database(self.store, path)
+            QMessageBox.information(self, 'Backup complete', 'Saved data backed up successfully. Active unsaved time is excluded.')
+
+    def export(self):
+        path, _ = QFileDialog.getSaveFileName(self, 'Export saved sessions', 'TimeMaster-sessions.csv', 'CSV (*.csv)')
+        if path:
+            export_sessions(self.store, path)
+            QMessageBox.information(self, 'Export complete', 'Saved sessions exported successfully.')
 
     def rename(self):
         task_id = self.tasks.selected_id()
@@ -196,7 +223,7 @@ class Application(QMainWindow):
                     return
                 self.controller.stop()
             self.store.close()
-        except (ValueError, sqlite3.Error) as error:
+        except (OSError, ValueError, sqlite3.Error) as error:
             event.ignore()
             self.tick()
             QMessageBox.critical(self, 'LevelUp', str(error))
@@ -208,14 +235,25 @@ class Application(QMainWindow):
 def main():
     application = QApplication(sys.argv)
     application.setStyle('Fusion')
+    # Release smoke tests always use temporary data, never the user's real DB.
+    smoke = '--smoke-test' in sys.argv
+    temporary = tempfile.TemporaryDirectory() if smoke else None
     store = None
     try:
-        store = Store(default_database())
+        database = Path(temporary.name) / 'smoke.sqlite3' if smoke else default_database()
+        store = Store(database)
         window = Application(store)
     except (OSError, ValueError, sqlite3.Error) as error:
         QMessageBox.critical(None, 'LevelUp startup failed', str(error))
         if store is not None:
             store.close()
-        return
+        if temporary is not None:
+            temporary.cleanup()
+        return 1
     window.show()
-    application.exec()
+    if smoke:
+        QTimer.singleShot(250, window.close)
+    result = application.exec()
+    if temporary is not None:
+        temporary.cleanup()
+    return result

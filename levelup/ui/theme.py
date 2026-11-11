@@ -12,7 +12,7 @@ QPushButton:hover { background: #354562; }
 QPushButton:pressed { background: #43597c; }
 QPushButton:focus, QLineEdit:focus, QTreeWidget:focus { border: 1px solid #a6b8ff; }
 QPushButton:disabled { color: #778397; background: #1c2230; border-color: #283248; }
-QPushButton#primary { background: #596fd1; color: white; }
+QPushButton:checked, QPushButton#primary { background: #596fd1; color: white; }
 QLineEdit { background: #1d2534; border: 1px solid #3a4760; border-radius: 7px; padding: 10px; }
 QTreeWidget { background: #1b2230; alternate-background-color: #202939; border: 1px solid #303d54; border-radius: 8px; padding: 5px; }
 QTreeWidget::item { padding: 9px; }

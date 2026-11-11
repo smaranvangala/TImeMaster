@@ -1,0 +1,39 @@
+name: Windows build
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+      - name: Build portable app and installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+          ./scripts/build-windows.ps1 -Installer
+      - name: Test installer and saved-data retention
+        shell: pwsh
+        run: ./scripts/test-windows-install.ps1
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TimeMaster-windows-x64
+          path: |
+            dist/TimeMaster-portable.zip
+            dist/TimeMaster-*-setup.exe
+            dist/build-dependencies.txt
+            dist/SHA256SUMS.txt
+          if-no-files-found: error

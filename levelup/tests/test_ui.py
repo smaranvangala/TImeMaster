@@ -285,6 +285,34 @@ class InterfaceTests(unittest.TestCase):
             error.assert_not_called()
         self.assertEqual(self.store.focus_summary()['session_count'], 3)
 
+    def test_settings_backup_export_cancel_and_io_failure(self):
+        self.add_selected()
+        self.click(self.window.focus.start_button)
+        self.now[0] = 65
+        self.click(self.window.focus.stop_button)
+        self.click(self.window.navigation['Settings'])
+        self.assertIs(self.window.pages.currentWidget(), self.window.settings)
+        self.assertTrue(self.window.navigation['Settings'].isChecked())
+        self.assertFalse(self.window.navigation['Tasks'].isChecked())
+        for button, filename in [(self.window.settings.backup_button, 'backup.sqlite3'),
+                                 (self.window.settings.export_button, 'sessions.csv')]:
+            target = str(Path(self.directory.name) / filename)
+            with patch('levelup.app.QFileDialog.getSaveFileName', return_value=(target, '')), \
+                    patch.object(QMessageBox, 'information') as information:
+                self.click(button)
+                information.assert_called_once()
+            self.assertTrue(Path(target).exists())
+        with patch('levelup.app.QFileDialog.getSaveFileName', return_value=('', '')), \
+                patch('levelup.app.backup_database') as backup:
+            self.click(self.window.settings.backup_button)
+            backup.assert_not_called()
+        with patch('levelup.app.QFileDialog.getSaveFileName', return_value=('ignored', '')), \
+                patch('levelup.app.export_sessions', side_effect=OSError('cannot write')), \
+                patch.object(QMessageBox, 'critical') as error:
+            self.click(self.window.settings.export_button)
+            error.assert_called_once()
+        self.assertEqual(self.store.focus_summary()['session_count'], 1)
+
     def test_existing_phase_one_database_and_navigation(self):
         self.store.add_task('Existing task')
         self.store.record_session(1, '2026-11-11T00:00:00+00:00', 20)
@@ -292,7 +320,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(0), 'Existing task')
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 20)
         for name, button in self.window.navigation.items():
-            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics'))
+            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'))
         with patch.dict(os.environ, {'LOCALAPPDATA': self.directory.name}):
             self.assertEqual(default_database(), Path(self.directory.name) / 'LevelUp' / 'levelup.sqlite3')
 

@@ -35,7 +35,7 @@ Deleted tasks retain their sessions and overall time, labeled “Deleted task”
 history uses current titles for tasks that still exist.
 
 Tasks, Session history, XP & Levels, Milestones and Analytics are enabled.
-Dashboard, Skills and Settings remain placeholders.
+Settings provides backup/export controls. Navigation shows implemented features only.
 
 ## XP and levels (Phase 2)
 Each saved session awards 1 XP per full active minute: 59 seconds gives 0 XP,
@@ -140,5 +140,19 @@ or timing sleeps are involved.
    saving. Restart and confirm saved totals with the same chosen filters.
 10. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
 
-See PROJECT_STATUS.md for phase gates. Phase 4 is ready for Windows testing; the user authorized publishing it to main. Windows
-packaging and release checks remain Phase 5 and require explicit approval.
+## Packaging and saved-data tools (Phase 5)
+Settings shows the version and data location, with SQLite backup and CSV export
+buttons. Both contain saved data only; stop/save a session first to include it.
+Backups retain tasks, sessions, XP and milestones. Export uses spreadsheet-safe
+UTF-8 CSV; it is a report, not a restore file.
+
+See RELEASE.md for Windows portable/installer build commands, backup restoration,
+manual release/accessibility checks and the manual Windows Actions workflow.
+Build dependencies are separate in requirements-build.txt; normal source runs
+still require only requirements.txt. `python -m levelup --smoke-test` validates
+Qt startup using temporary data and exits without opening your real database.
+
+Phase 5 tooling is approved for publishing and Windows build validation. The Windows executable
+and installer still require Windows validation; this workspace runs Linux.
+Skills, cloud sync and automatic updates are future work and are not shown as
+nonfunctional navigation items. This release candidate implements the five-phase plan.

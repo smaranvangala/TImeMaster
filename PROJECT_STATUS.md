@@ -2,80 +2,90 @@
 Updated: 2026-11-11
 
 ## Current phase
-Phase 4 (analytics) complete; user authorized committing and publishing to main
-for Windows testing. STOP: Phase 5 requires explicit user approval.
+Phase 5 release tooling/data controls implemented locally. Final source release-candidate review completed; Windows platform
+validation remains pending; NOT a validated Windows release. Uncommitted/unpushed.
+User approved commit/push and running the Windows build workflow. Public release
+publishing/signing is not authorized. Further feature work requires review.
 
 ## Completed features
 - Phase 1: PySide6 task CRUD/completion, SQLite persistence, monotonic focus
-  timer excluding pauses, close confirmation, atomic saves and failed-save retry.
-- SQL-derived task/overall focus totals and session count; retained history/time
-  for deleted tasks, local start timestamps and durations in history.
-- Phase 2: per-session XP ledger, levels/progress UI and historical rewards.
-- Phase 3: seven permanent milestones (1/10/25 sessions, 1/10 hours, levels 2/5),
-  saved unlock timestamps, historical recognition, no bonus XP.
-- Phase 4: Analytics page with inclusive date range, task/deleted-task filters,
-  daily/weekly totals, focus-hours bar chart with tooltips/horizontal scroll,
-  exact-value table, zero-focus periods and filtered time/session summary.
-- Analytics refreshes after saves/data changes and reloads saved data on startup.
-  Invalid ranges show inline errors without interfering with session saves.
+  timer excluding pauses, saved history/totals/count, atomic saves and close retry.
+- Phase 2: per-session XP ledger and levels. Phase 3: seven permanent milestones.
+- Phase 4: daily/weekly focus analytics with date/task/deleted filters, chart and
+  exact table; inclusive local-start-date grouping, Monday weeks, max 366 days.
+- Phase 5: Settings/data page with version/data location, consistent SQLite online
+  backup and spreadsheet-safe UTF-8 CSV session export. Atomic replacement,
+  protected live DB/sidecars, no schema change. Source entry point preserved.
+- Release polish: active navigation state, existing keyboard focus styles and
+  accessible widget labels; checklist for Windows high-DPI/keyboard validation.
+- PyInstaller directory spec/launcher, Windows PowerShell build/smoke/ZIP script,
+  per-user Inno Setup installer config (uninstall retains user data), manual
+  Windows Actions workflow uploading test artifacts; no auto-release/push trigger.
+- Release candidate version 0.1.0; backup/restore, release and initial third-party
+  notices documentation. Build generates dependency inventory and SHA256 hashes.
 
-## Architecture / rules
-- Python 3.11+, PySide6>=6.8,<7, SQLite. No new dependencies or schema changes.
-- core.py owns storage/migrations/timer, controller.py owns actions/guards;
-  progression.py owns XP rules; achievements.py owns milestone definitions;
-  analytics.py owns pure calendar aggregation; ui/ owns Qt views/chart/formatting.
-- Analytics uses parameterized task filtering then aggregates session rows in
-  Python for correct local-calendar/timezone handling. No stored summary counters.
-- Saved sessions count by local start date; full duration goes to that date,
-  including overnight sessions. Do not split days without pause-segment data.
-- Weeks start Monday. Inclusive filters limit partial boundary weeks. Dates with
-  no sessions remain in reports. Fractions are summed before display truncation.
-- Date range: at most 366 days, default last 30 local days. Filters temporary;
-  restart resets them. Deleted selected task resets filter to All tasks.
-- Completed tasks included; deleted task sessions retained as a combined filter.
-- QPainter bar chart uses hours; hover/Table gives exact duration and count.
-- All-time summary remains global; Analytics summary applies selected filters.
-- QTimer only refreshes live display; no DB reads or aggregation on timer ticks.
-- XP unchanged: floor(active seconds/60) per saved session, 100 XP per level
-  starting at level 1. No task completion or milestone bonus. Session/XP/unlocks
-  share a transaction; unique session awards and permanent achievement keys.
-- Schema v3; v1/v2 migration paths retain original records. No downgrades/resets.
-- DB path unchanged: %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on Windows, otherwise
-  ~/.local/share/LevelUp/levelup.sqlite3. No live Windows DB available here.
+## Architecture / conventions
+- Python 3.11+, PySide6==6.12.0, SQLite. Build tooling separate in
+  requirements-build.txt (PyInstaller==6.22.3); Windows target Python 3.12 x64.
+- core.py owns DB/migrations/timer; controller.py actions; progression.py XP;
+  achievements.py milestones; analytics.py calendar aggregation; exports.py file
+  outputs; ui/ Qt views; app.py composition/dialogs/startup/shutdown.
+- Source: `python -m levelup`. Smoke: add `--smoke-test` to source or packaged
+  executable; creates temporary DB and auto-closes Qt, never opens real user DB.
+- Build Windows: install requirements-build.txt then run scripts/build-windows.ps1
+  (-Installer requires Inno Setup 6). See RELEASE.md. Must build on target OS.
+- TimeMaster.spec uses directory mode with replaceable Qt libraries; whole folder
+  required. Installer is per-user; user data remains outside installation directory.
+- Schema v3 unchanged. DB: %LOCALAPPDATA%/LevelUp/levelup.sqlite3 (Windows), otherwise
+  ~/.local/share/LevelUp/levelup.sqlite3. Never reset/downgrade; v1/v2 upgrade paths.
+- Backups use SQLite backup API and integrity check, retain raw data. CSV titles
+  neutralize formula prefixes. Both exclude unsaved live sessions. Restore only
+  with all instances closed; preserve old DB/sidecars, see RELEASE.md.
+- Session/XP/unlocks remain one transaction. XP=floor(active seconds/60) per
+  session; 100 XP/level from level 1; no completion/milestone bonuses.
+- Milestones unique and permanent; historical unlock dates are detection dates.
+- QTimer only refreshes display; no DB reads/aggregation on ticks. Analytics
+  attributes entire duration to local start date; filters reset on restart.
 
 ## Validation
-- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (32 tests).
-- PASS: .venv/bin/python -m compileall -q levelup; git diff --check.
-- Phase 1–3 regression tests retained. New coverage: inclusive local-midnight
-  boundaries, fractional totals, overnight-session attribution, Monday/partial
-  weeks, zero days/year boundaries, range validation, DST repeated hour, task/
-  deleted filtering, SQL parameter safety, reopening DB and read-only reports.
-- Qt checks: enabled Analytics navigation, chart/table values, apply/group/task
-  filters, rename/delete selection retention/reset, immediate saved updates,
-  and session save despite invalid analytics filters.
-- Offscreen chart render/close inspected. Native Windows scaling/input/calendar
-  dialogs and real-data timezone behavior still need manual testing.
+- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (39 tests).
+- PASS: compileall, git diff --check and pip check.
+- New tests: consistent backup/reopen with XP/unlocks retained, Unicode/quoted/
+  deleted titles/fractional CSV durations, spreadsheet-safe titles, DB/sidecar/
+  hardlink destination guards, failed output atomicity and temp cleanup, Settings
+  actions/cancel/I/O errors, active navigation and source smoke preserving user DB.
+- PASS: Linux PyInstaller 6.22.3/PySide6 6.12.0 build from TimeMaster.spec and
+  packaged binary `--smoke-test` (offscreen). Build log: /workspace/work/phase5-build.log.
+- PowerShell 7.7.0 parser checks PASS for both build/install-test scripts.
+  Native Windows/Inno Setup execution unavailable locally. Windows workflow/installer prepared; native execution remains pending.
+- Added automatic clean-runner install/reinstall/uninstall and saved-data
+  retention test. No workflow has been published/run yet.
+- Windows manual release/accessibility/install/uninstall/clean-PC tests pending.
 
-## Known bugs / limitations
-- No confirmed defects from automated tests.
-- Queries load selected task's session history before calendar filtering; indexing/
-  pagination can be added when real dataset sizes justify it.
-- Filters are not persisted; changing computer timezone changes calendar grouping.
-- Overnight sessions use start-date attribution rather than active-segment splits.
-- Forced exit can lose unsaved session. Sleep accounting follows monotonic clock.
-- Original deleted-task names unavailable. No installer yet.
-- Historical milestone unlock dates record detection time, not reconstructed dates.
+## Known limitations / release gates
+- Windows distribution not built or tested in this Linux environment. Run the
+  manual workflow after approval/push or build on Windows, then follow RELEASE.md.
+- Builds unsigned. No public release published; no updater or crash recovery.
+- Initial THIRD_PARTY_NOTICES.md is not a complete bundled license inventory.
+  Collect applicable upstream licenses/attributions and review redistribution
+  requirements against the actual Windows bundle before public distribution.
+  Project owner must choose TimeMaster's own distribution license too.
+- Nonfunctional Dashboard/Skills navigation placeholders removed; these were
+  never implemented features. All five-phase functionality is retained.
+- Forced exit can lose unsaved timer; sleep follows monotonic clock. No automatic
+  destructive restore UI. Native high-DPI/screen-reader behavior remains unverified.
+- History/analytics read selected session rows; large-dataset pagination deferred.
+- Deleted task names unavailable; analytics filters not persisted.
 
 ## Git / next step
-- Repository: /workspace/TImeMaster (workspace-root copies are historical).
-- Origin: https://github.com/smaranvangala/TImeMaster.git; branch main.
-- Phase 3 published: 32c0c36ef7a0ed8ea21c0787f69fbab9cde4fd79.
-- User authorized the Phase 4 commit and push to main.
-- Recommended commit: `feat: add daily and weekly focus analytics`.
-- Windows testing: choose ranges/tasks, compare daily/weekly/table totals and
-  history, check deleted tasks/zero days/invalid dates, save new sessions, restart
-  and reapply filters to confirm persistence before approving Phase 5.
-- Phase 5: Windows packaging/release checks; NOT started.
-- Phase end: test, update notes, recommend commit and stop.
-- Start a fresh Codex session after manual review to control context/usage; read
-  AGENTS.md and PROJECT_STATUS.md first, then only relevant implementation files.
+- Working repo /workspace/TImeMaster; root-level copies are historical.
+- Origin https://github.com/smaranvangala/TImeMaster.git, main.
+- Phase 4 published: 9d0bb2a1b01e218d52a0764642068707119df036.
+- User approved committing/pushing Phase 5 and running Windows CI; generated
+  build/dist remain ignored. Windows results will be recorded after the run.
+- Recommended commit: `build: prepare Windows packaging and saved-data tools`.
+- Next: review local changes, approve commit/push, build on Windows or manually
+  trigger Windows build workflow, download test artifacts, run RELEASE.md checks
+  with database backups. Do not treat Linux smoke as Windows release approval.
+- Start a fresh Codex session after this handoff to limit context/usage; read
+  AGENTS.md and PROJECT_STATUS.md first, then relevant files only.
