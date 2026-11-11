@@ -66,7 +66,16 @@ an explicit pause. Details may be refined when that phase is authorized.
 - Phase 1 commit message: `Phase 1: Core application`.
 - Python/PySide6 ignore rules exclude secrets, local databases, caches, virtual
   environments, generated Qt code and build output. Runtime remains Tkinter.
-- Push verification will be recorded after checking the remote main commit.
+- Initial commit created: 72c159c (`Phase 1: Core application`).
+- BLOCKED: `git push -u origin main` returned HTTP 403: permission denied.
+  GitHub connector reports push permission, but the Git HTTPS credential used
+  by this environment was rejected. No remote commits were overwritten.
+- Enable repository write access for this environment’s Git credentials, then
+  run `git -C /workspace/TImeMaster push -u origin main`. Do not share tokens
+  in chat. Verify local HEAD equals `git ls-remote origin refs/heads/main`.
+- All five core tests and syntax checks passed in /workspace/TImeMaster;
+  Python source files match original Phase 1 files byte-for-byte.
+- Remote main is absent after the rejected push; GitHub setup is incomplete.
 - Await user approval before Phase 2; next implementation is XP reward rules,
   versioned migration and idempotent award tests.
 - No fresh session needed yet. For future sessions, read AGENTS.md and this file.
