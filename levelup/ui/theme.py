@@ -17,5 +17,7 @@ QLineEdit { background: #1d2534; border: 1px solid #3a4760; border-radius: 7px; 
 QTreeWidget { background: #1b2230; alternate-background-color: #202939; border: 1px solid #303d54; border-radius: 8px; padding: 5px; }
 QTreeWidget::item { padding: 9px; }
 QTreeWidget::item:selected { background: #354b7a; color: white; }
+QProgressBar { background: #1d2534; border: 1px solid #3a4760; border-radius: 7px; min-height: 28px; text-align: center; }
+QProgressBar::chunk { background: #596fd1; border-radius: 6px; }
 QHeaderView::section { background: #242e40; color: #b9c5d8; padding: 8px; border: none; }
 '''

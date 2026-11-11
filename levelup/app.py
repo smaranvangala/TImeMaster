@@ -16,6 +16,7 @@ from .ui.tasks import FocusPanel, TasksPage
 from .ui.theme import DARK_THEME
 from .ui.history import HistoryPage
 from .ui.formatting import format_duration
+from .ui.progress import ProgressPage
 
 
 def default_database():
@@ -53,6 +54,8 @@ class Application(QMainWindow):
         self.pages.addWidget(self.tasks)
         self.history = HistoryPage()
         self.pages.addWidget(self.history)
+        self.progress = ProgressPage()
+        self.pages.addWidget(self.progress)
         self.navigation = {}
         for name in ('Dashboard', 'Skills', 'Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
             button = QPushButton(name.replace('&', '&&'))
@@ -62,6 +65,8 @@ class Application(QMainWindow):
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.tasks))
             elif name == 'Session history':
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.history))
+            elif name == 'XP & Levels':
+                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.progress))
             else:
                 button.setEnabled(False)
                 button.setToolTip('Planned for a later phase')
@@ -113,6 +118,7 @@ class Application(QMainWindow):
             f"Overall saved focus: {format_duration(summary['focus_seconds'])}   •   "
             f"Completed sessions: {summary['session_count']}")
         self.history.render(self.store.session_history())
+        self.progress.render(self.store.progression())
 
     def rename(self):
         task_id = self.tasks.selected_id()
@@ -183,7 +189,7 @@ def main():
     try:
         store = Store(default_database())
         window = Application(store)
-    except (OSError, sqlite3.Error) as error:
+    except (OSError, ValueError, sqlite3.Error) as error:
         QMessageBox.critical(None, 'LevelUp startup failed', str(error))
         if store is not None:
             store.close()

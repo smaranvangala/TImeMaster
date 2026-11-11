@@ -119,7 +119,7 @@ class InterfaceTests(unittest.TestCase):
             self.assertEqual(reopened.focus_summary()['focus_seconds'], 12)
             self.assertEqual(reopened.focus_summary()['session_count'], 1)
             self.assertEqual(reopened.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 12)
-            self.assertEqual(reopened.connection.execute('PRAGMA user_version').fetchone()[0], 1)
+            self.assertEqual(reopened.connection.execute('PRAGMA user_version').fetchone()[0], 2)
         finally:
             reopened.close()
 
@@ -174,6 +174,38 @@ class InterfaceTests(unittest.TestCase):
         self.assertIn('00:00:30', self.window.summary.text())
         self.assertEqual(self.window.history.tree.topLevelItem(0).text(0), 'Deleted task')
 
+    def test_xp_page_updates_after_save_and_persists(self):
+        self.add_selected()
+        self.assertEqual(self.window.progress.level.text(), 'Level 1')
+        self.click(self.window.focus.start_button)
+        self.now[0] = 60
+        self.click(self.window.focus.pause_button)
+        self.now[0] = 600
+        self.window.tick()
+        self.assertEqual(self.window.progress.total.text(), 'Total XP: 0')
+        self.click(self.window.focus.pause_button)
+        self.now[0] = 660
+        self.click(self.window.focus.stop_button)
+        self.assertEqual(self.window.progress.total.text(), 'Total XP: 2')
+        self.assertEqual(self.window.progress.bar.value(), 2)
+        self.click(self.window.navigation['XP & Levels'])
+        self.assertIs(self.window.pages.currentWidget(), self.window.progress)
+        self.click(self.window.tasks.toggle_button)
+        self.click(self.window.tasks.toggle_button)
+        self.assertEqual(self.window.progress.total.text(), 'Total XP: 2')
+        self.window.close()
+        self.store = Store(self.path)
+        self.controller = Controller(self.store, FocusTimer(lambda: self.now[0]))
+        self.window = Application(self.store, self.controller)
+        self.window.show()
+        self.assertEqual(self.window.progress.total.text(), 'Total XP: 2')
+        self.store.record_session(self.window.tasks.tree.topLevelItem(0).data(0, Qt.ItemDataRole.UserRole),
+                                  '2026-11-11T00:00:00+00:00', 98 * 60)
+        self.window.refresh()
+        self.assertEqual(self.window.progress.level.text(), 'Level 2')
+        self.assertEqual(self.window.progress.bar.value(), 0)
+        self.assertEqual(self.window.progress.total.text(), 'Total XP: 100')
+
     def test_existing_phase_one_database_and_navigation(self):
         self.store.add_task('Existing task')
         self.store.record_session(1, '2026-11-11T00:00:00+00:00', 20)
@@ -181,7 +213,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(0), 'Existing task')
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 20)
         for name, button in self.window.navigation.items():
-            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history'))
+            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels'))
         with patch.dict(os.environ, {'LOCALAPPDATA': self.directory.name}):
             self.assertEqual(default_database(), Path(self.directory.name) / 'LevelUp' / 'levelup.sqlite3')
 

@@ -4,6 +4,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .progression import progress_for, session_xp
+
 
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
@@ -15,23 +17,61 @@ class Store:
         self.connection = sqlite3.connect(path)
         self.connection.row_factory = sqlite3.Row
         self.connection.execute('PRAGMA foreign_keys = ON')
+        try:
+            self._migrate()
+        except Exception:
+            self.connection.close()
+            raise
+
+    def _migrate(self):
+        # Explicit transaction: SQLite DDL and backfill succeed or roll back together.
         with self.connection:
-            self.connection.executescript('''
-                CREATE TABLE IF NOT EXISTS tasks (
-                    id INTEGER PRIMARY KEY,
-                    title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 1 AND 200),
-                    completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)),
-                    created_at TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS sessions (
-                    id INTEGER PRIMARY KEY,
-                    task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
-                    started_at TEXT NOT NULL,
-                    ended_at TEXT NOT NULL,
-                    seconds REAL NOT NULL CHECK(seconds > 0)
-                );
-                PRAGMA user_version = 1;
-            ''')
+            self.connection.execute('BEGIN IMMEDIATE')
+            version = self.connection.execute('PRAGMA user_version').fetchone()[0]
+            if version > 2:
+                raise ValueError('This database requires a newer version of TimeMaster.')
+            if version == 0:
+                self.connection.execute("""
+                    CREATE TABLE IF NOT EXISTS tasks (
+                        id INTEGER PRIMARY KEY,
+                        title TEXT NOT NULL CHECK(length(trim(title)) BETWEEN 1 AND 200),
+                        completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1)),
+                        created_at TEXT NOT NULL
+                    )
+                """)
+                self.connection.execute("""
+                    CREATE TABLE IF NOT EXISTS sessions (
+                        id INTEGER PRIMARY KEY,
+                        task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+                        started_at TEXT NOT NULL,
+                        ended_at TEXT NOT NULL,
+                        seconds REAL NOT NULL CHECK(seconds > 0)
+                    )
+                """)
+                self.connection.execute('PRAGMA user_version = 1')
+                version = 1
+            if version == 1:
+                self.connection.execute("""
+                    CREATE TABLE xp_awards (
+                        session_id INTEGER PRIMARY KEY REFERENCES sessions(id),
+                        points INTEGER NOT NULL CHECK(points >= 0),
+                        awarded_at TEXT NOT NULL
+                    )
+                """)
+                self._backfill_xp()
+                self.connection.execute('PRAGMA user_version = 2')
+
+    def _backfill_xp(self):
+        # Phase 1 always stored positive seconds; CAST truncates whole minutes.
+        self.connection.execute("""
+            INSERT INTO xp_awards(session_id, points, awarded_at)
+            SELECT id, CAST(seconds / 60 AS INTEGER), ? FROM sessions
+        """, (utc_now(),))
+
+    def progression(self):
+        total = self.connection.execute(
+            'SELECT COALESCE(SUM(points), 0) FROM xp_awards').fetchone()[0]
+        return progress_for(total)
 
     @staticmethod
     def validate_title(title):
@@ -86,9 +126,12 @@ class Store:
 
     def record_session(self, task_id, started_at, seconds):
         with self.connection:
-            self.connection.execute(
+            cursor = self.connection.execute(
                 'INSERT INTO sessions(task_id, started_at, ended_at, seconds) VALUES (?,?,?,?)',
                 (task_id, started_at, utc_now(), seconds))
+            self.connection.execute(
+                'INSERT INTO xp_awards(session_id, points, awarded_at) VALUES (?,?,?)',
+                (cursor.lastrowid, session_xp(seconds), utc_now()))
 
     def close(self):
         self.connection.close()

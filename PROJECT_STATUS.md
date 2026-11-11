@@ -2,67 +2,74 @@
 Updated: 2026-11-11
 
 ## Current phase
-Phase 1 cumulative-time visibility update complete, awaiting Windows manual
-review. User authorized a local commit; push remains pending approval. Phase 2 requires approval.
+Phase 2 (XP and levels) complete; user authorized committing and publishing to
+main for Windows manual testing. STOP: do not start Phase 3 without approval.
 
 ## Completed features
-- PySide6 dark interface; create/select/rename/complete/reopen/delete tasks.
-- SQLite persistence, task-bound monotonic focus timer, pause/resume/stop/save,
-  close confirmation, retained paused session on save failure.
-- Saved focus column for every task, overall saved duration and completed
-  session count, computed directly using SQLite SUM/COUNT queries.
-- Session history page: task, local start date/time with UTC offset, duration,
-  newest first. Totals/history refresh after successful stop/save and load on startup.
-- Existing session rows included without migration. No duplicate counters.
-- Deleted tasks retain sessions and overall time; shown as “Deleted task”.
-  Existing tasks use their current titles. Unsaved active sessions excluded.
-- HH:MM:SS durations floor fractional seconds after aggregation; hours unbounded.
-  Every saved nonzero session counts independently of task completion.
+- Phase 1: PySide6 dark desktop, task CRUD/completion/reopening, monotonic focus
+  timer with pauses, atomic saves, close confirmation and failed-save retry.
+- SQL-derived saved time per task/overall, saved-session count and history with
+  local start dates/times. Deleted-task sessions remain in overall totals/history.
+- Phase 2: XP ledger, deterministic level calculations, enabled XP & Levels page
+  showing total XP, current level, progress bar and XP needed for the next level.
+- Successful saves refresh progress immediately; normal close saves also earn XP.
+- Transactional v1-to-v2 migration preserves all task/session records and credits
+  historical sessions exactly once, including those belonging to deleted tasks.
 
-## Architecture decisions
+## Reward rules / architecture decisions
 - Python 3.11+, PySide6>=6.8,<7, standard-library SQLite.
-- core.py owns database queries/timer; controller.py owns actions/guards;
-  app.py composes Qt views/dialogs; ui/ holds widgets and formatting.
-- QTimer refreshes live display every 200 ms; never computes elapsed time or
-  queries SQLite. Saved summaries/history refresh only with data changes/startup.
-- Preserve schema version 1 and database path:
-  %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on Windows, otherwise
-  ~/.local/share/LevelUp/levelup.sqlite3. Future schema changes require migrations.
-- This update adds read-only aggregate/history queries, not schema changes.
-- No live user database exists in this cloud workspace; Windows data is not
-  accessible here. Validation uses temporary SQLite databases and saved records.
+- 1 XP per full active minute in each saved session (floor seconds / 60).
+  Partial minutes do not carry between sessions. Paused/unsaved time earns none.
+- Level = total XP // 100 + 1, starting at level 1; each level requires 100 XP.
+- No completion/reopening bonus. Task deletion retains saved sessions and XP.
+- progression.py owns pure rules; core.py owns persistence/migrations/timer;
+  controller.py owns actions/guards; app.py composes views; ui/ holds widgets.
+- xp_awards has one unique entry per session (including zero-XP sessions).
+  New session and award are written in the same transaction. Rewards are summed
+  from the ledger; no mutable total/level counters. Rules are fixed for Phase 2.
+- v0 initializes baseline schema; v1 adds ledger/backfill; current version is 2.
+  DDL, backfill and version update are atomic. Unknown future schemas rejected.
+- Original database path unchanged: %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on
+  Windows; ~/.local/share/LevelUp/levelup.sqlite3 otherwise. Back up before upgrade;
+  do not use older Phase 1 builds on an upgraded database.
+- QTimer refreshes live display every 200 ms, never queries SQLite or computes
+  elapsed time. Saved views reload after mutations/startup. FocusTimer unchanged.
+- No live Windows database available in this workspace; tests use temporary DBs.
 
 ## Validation
-- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (13 tests).
+- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (19 tests).
 - PASS: .venv/bin/python -m compileall -q levelup; git diff --check.
-- Core tests cover empty/multiple-task/fractional totals, completed tasks,
-  reopening a database, history ordering and retained deleted-task time.
-- Qt tests cover immediate updates, page navigation, window reopening,
-  renaming/deleting history tasks, close/save totals, failed-save count/history,
-  plus all previous task and timer behavior tests.
-- Windows manual validation of cumulative-time UI remains pending.
+- Retained Phase 1 behavior tests, updated expected schema version to 2.
+- Added level/minute boundary tests, repeated v1 migration with exact source-row
+  preservation, migration failure rollback/retry, future-version rejection,
+  failed XP-write rollback and save retry, unique reward enforcement, deletion/
+  completion retention and UI reward refresh/pause behavior/reopen/level boundary.
+- Offscreen render of XP page checked. Windows native appearance/scaling and
+  real-data upgrade still require manual testing.
 
 ## Known bugs / limitations
 - No confirmed defects from automated checks.
-- Forced exit can lose the unsaved active session; crash recovery not implemented.
+- Forced exit can lose an unsaved active session; crash recovery not implemented.
 - Original names of deleted tasks cannot be recovered from schema v1 records.
-- History loads all saved sessions; pagination is deferred unless needed.
-- Native Windows appearance/scaling still requires manual verification.
-- No installer yet. OS sleep accounting follows platform monotonic behavior.
+- Session history loads all saved sessions; pagination deferred unless needed.
+- No executable/installer. OS sleep behavior follows platform monotonic clock.
+- XP uses per-session whole minutes; splitting time into short sessions can earn
+  less XP than one uninterrupted saved session. This is the documented initial rule.
 
 ## Git / working directory
 - Work in /workspace/TImeMaster; workspace-root copies are historical.
 - Origin: https://github.com/smaranvangala/TImeMaster.git, branch main.
-- Published migration: af8f8582553eb7f7899b471ba0f75494da7cae34.
-- User authorized committing the cumulative-time update locally. It is not pushed.
-- Commit message: `feat: show saved focus totals and session history`.
+- Phase 1 cumulative-time update published: b8fe0e42a0023226f5d0712050d0e05aa04ff0b0.
+- User approved the Phase 2 commit and push to main for manual testing.
+- Recommended commit: `feat: add transactional XP rewards and level progression`.
 
 ## Remaining plan / next step
-- User manually tests multiple sessions, paused time, totals after save/restart,
-  history dates and deleted-task retention on Windows, then approves publishing.
-- Phase 2: XP reward rules, ledger, levels and idempotent award tests; NOT started.
-- Phase 3: milestones/achievements. Phase 4: daily/weekly analytics/charts/filtering
-  (basic session history delivered early at user request). Phase 5: Windows packaging.
+- Manually test Windows with a database backup: upgrade includes old sessions,
+  save 60+ active seconds, pause/resume, check XP page, restart, complete/reopen/
+  delete tasks and confirm no duplicate or lost XP. Then review the next phase.
+- Phase 3: milestones/achievements; NOT started.
+- Phase 4: daily/weekly analytics/charts/filtering (basic history delivered early).
+- Phase 5: Windows packaging and release checks.
 - Each phase: test, update notes, recommend commit, stop for approval.
-- A fresh session is reasonable after manual testing; read AGENTS.md and this
-  file first. No need to repeat full codebase inspection.
+- Start a fresh Codex session after this phase/manual review to keep context
+  small. Read AGENTS.md and PROJECT_STATUS.md first; do not re-inspect everything.

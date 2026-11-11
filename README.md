@@ -34,15 +34,30 @@ sessions. Completing a task is independent of completing a focus session.
 Deleted tasks retain their sessions and overall time, labeled “Deleted task”;
 history uses current titles for tasks that still exist.
 
-The dark sidebar reserves space for future sections. Tasks and Session history are enabled;
-Dashboard, Skills, XP & Levels, Milestones, Analytics and Settings are placeholders.
+Tasks, Session history and XP & Levels are enabled. Dashboard, Skills,
+Milestones, Analytics and Settings remain placeholders.
+
+## XP and levels (Phase 2)
+Each saved session awards 1 XP per full active minute: 59 seconds gives 0 XP,
+60 seconds gives 1 XP, and 125 seconds gives 2 XP. Partial minutes do not carry
+between sessions; paused/unsaved time earns no XP. Every 100 XP advances one
+level, starting at level 1 (100 XP = level 2). The XP & Levels page shows your
+total, current level and progress toward the next level.
+
+Historical saved sessions receive XP once on upgrade, including sessions for
+deleted tasks. Completing/reopening tasks earns no XP, and deleting a task
+keeps its XP. Each session has one ledger entry; saving the session and award
+is atomic. Reopening the app or retrying a failed save cannot duplicate awards.
 
 ## Existing data
 The app opens the same database as before:
 `%LOCALAPPDATA%\LevelUp\levelup.sqlite3` on Windows, or
 `~/.local/share/LevelUp/levelup.sqlite3` on other systems.
-No migration or database reset is required; schema version remains 1.
-Back up this file while the app is closed before testing. There is no cloud
+Phase 2 automatically upgrades schema version 1 to 2 transactionally, adding
+an XP ledger and crediting existing sessions while preserving all task/session
+rows. Back up this file while the app is closed before the first Phase 2 launch.
+Older Phase 1 builds are not supported against an upgraded database; restore
+the backup if rolling back the application. There is no cloud
 account or sync. Forced termination can lose the current unsaved session.
 
 ## Development and tests
@@ -58,6 +73,7 @@ platform and use temporary databases and an injected clock; no real user data
 or timing sleeps are involved.
 
 - `levelup/core.py`: SQLite persistence, derived focus totals/history and unchanged monotonic timer.
+- `levelup/progression.py`: pure reward rules and level calculations.
 - `levelup/controller.py`: application actions and task/session guards, independent of Qt.
 - `levelup/app.py`: QMainWindow, dialogs, signals, startup and close handling.
 - `levelup/ui/`: reusable task/focus widgets and the shared dark theme.
@@ -71,10 +87,9 @@ or timing sleeps are involved.
 5. Save multiple sessions on two tasks. Check per-task/overall totals and count,
    open Session history, then restart and verify the same saved totals/history.
 6. Delete a task and confirm its saved time remains in the overall total/history.
-7. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
+7. Open XP & Levels. Save 60+ seconds of active focus; confirm XP increases
+   immediately and remains unchanged after restarting, reopening or deleting tasks.
+8. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
 
-See PROJECT_STATUS.md for phase gates. No XP, levels, milestones, advanced analytics or
-Windows installer is implemented. Phase 2 requires explicit approval.
-
-The cumulative-time changes are committed locally; pushing awaits approval;
-GitHub main currently contains the PySide6 migration, not these additions.
+See PROJECT_STATUS.md for phase gates. Phase 2 is ready for Windows testing; the user authorized publishing it to main. No achievements, milestones, advanced analytics or installer are
+implemented. Phase 3 requires approval.
