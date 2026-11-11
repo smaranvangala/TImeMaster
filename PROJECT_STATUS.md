@@ -57,9 +57,9 @@ remains. No signed/public production release published. Further features require
 - PASS: Linux PyInstaller 6.22.3/PySide6 6.12.0 build from TimeMaster.spec and
   packaged binary `--smoke-test` (offscreen). Build log: /workspace/work/phase5-build.log.
 - PowerShell 7.7.0 parser checks PASS for both build/install-test scripts.
-  Native Windows/Inno Setup execution unavailable locally. Windows workflow/installer prepared; native execution remains pending.
-- Added automatic clean-runner install/reinstall/uninstall and saved-data
-  retention test. No workflow has been published/run yet.
+  Native execution was validated on the Windows Actions runner.
+- Windows workflow run 42961639032 passed package build, installed startup,
+  install/reinstall/uninstall and saved-data retention checks.
 - Windows automated tests: 38 passed, 1 skipped (system IANA timezone data
   unavailable); Linux all 39 pass including DST. Manual visual/accessibility and
   clean-PC interaction checks remain pending.

@@ -165,7 +165,8 @@ Build dependencies are separate in requirements-build.txt; normal source runs
 still require only requirements.txt. `python -m levelup --smoke-test` validates
 Qt startup using temporary data and exits without opening your real database.
 
-Phase 5 tooling is approved for publishing and Windows build validation. The Windows build and installer lifecycle checks passed in GitHub Actions.
+Phase 5 tooling is published. Windows build and installer lifecycle checks
+passed in GitHub Actions.
 Native visual/accessibility checks remain manual.
 Skills, cloud sync and automatic updates are future work and are not shown as
 nonfunctional navigation items. This release candidate implements the five-phase plan.
