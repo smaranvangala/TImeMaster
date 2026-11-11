@@ -1,9 +1,10 @@
 """Read-only session history; timestamps are displayed in the computer's timezone."""
 from datetime import datetime
 
-from PySide6.QtWidgets import QHeaderView, QLabel, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHeaderView, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from .formatting import format_duration
+from .components import PageHeader, label
 
 
 class HistoryPage(QWidget):
@@ -11,24 +12,24 @@ class HistoryPage(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        heading = QLabel('Session history')
-        heading.setObjectName('heading')
-        layout.addWidget(heading)
-        note = QLabel('Saved sessions • Local start time with UTC offset • Newest first')
-        note.setObjectName('muted')
-        note.setWordWrap(True)
-        layout.addWidget(note)
+        layout.setSpacing(18)
+        layout.addWidget(PageHeader('Your record', 'Proof of time well spent.',
+                                    'Every saved session, in one place. Local start time with UTC offset, newest first.'))
+        self.empty = label('Your story starts with a saved session. Choose a task, then Stop & Save when you finish.', 'muted')
+        layout.addWidget(self.empty)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(['Task', 'Date', 'Start time', 'Duration'])
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
         self.tree.setAccessibleName('Saved session history')
+        self.tree.setMinimumHeight(260)
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         for column in (1, 2, 3):
             self.tree.header().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.tree, 1)
 
     def render(self, sessions):
+        self.empty.setVisible(not sessions)
         self.tree.clear()
         for session in sessions:
             started = datetime.fromisoformat(session['started_at']).astimezone()

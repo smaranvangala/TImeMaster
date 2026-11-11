@@ -2,7 +2,7 @@
 from pathlib import Path
 root = Path(SPECPATH)
 a = Analysis([str(root / 'packaging' / 'launcher.py')], pathex=[str(root)],
-             binaries=[], datas=[], hiddenimports=[], hookspath=[], hooksconfig={},
+             binaries=[], datas=[(str(root / 'levelup' / 'ui' / 'assets'), 'levelup/ui/assets')], hiddenimports=[], hookspath=[], hooksconfig={},
              runtime_hooks=[], excludes=['tkinter'], noarchive=False)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='TimeMaster',

@@ -1,9 +1,12 @@
 """Central design tokens/QSS shared by every desktop view."""
+from pathlib import Path
+
 COLORS = dict(background='#101417', surface='#191f24', raised='#20282e', border='#2b363e',
               text='#ecf1ed', muted='#a0aeb5', accent='#a8e5c3', gold='#e2c58d')
 DARK_THEME = '''
 QWidget { background: #101417; color: #ecf1ed; font-family: "Segoe UI", "Inter", sans-serif; font-size: 13px; }
 QLabel { background: transparent; }
+QWidget#focusInfo, QWidget#focusTime, QWidget#focusControls { background: transparent; }
 QWidget#page, QWidget#pageViewport { background: transparent; }
 QFrame#sidebar { background: #141a1e; border-right: 1px solid #293238; }
 QFrame#card, QFrame#achievementCard, QFrame#focusDock { background: #191f24; border: 1px solid #2b363e; border-radius: 14px; }
@@ -32,6 +35,7 @@ QPushButton#navigation:checked { background: #283c32; border-color: #34533f; col
 QPushButton#navigation:focus { border: 2px solid #b9ebcd; }
 QLineEdit, QComboBox, QDateEdit { background: #171e22; border: 1px solid #36434b; border-radius: 8px; padding: 9px 10px; min-height: 18px; selection-background-color: #375a47; }
 QComboBox::drop-down, QDateEdit::drop-down { width: 23px; border: none; }
+QComboBox::down-arrow, QDateEdit::down-arrow { image: url(__CHEVRON__); width: 16px; height: 16px; }
 QComboBox QAbstractItemView { background: #20282e; selection-background-color: #375a47; }
 QTreeWidget { background: #191f24; alternate-background-color: #1b2328; border: 1px solid #2b363e; border-radius: 12px; padding: 5px; outline: none; }
 QTreeWidget::item { min-height: 24px; padding: 9px 8px; border-bottom: 1px solid #252f35; }
@@ -50,4 +54,4 @@ QScrollBar:horizontal { height: 8px; background: transparent; }
 QScrollBar::handle:horizontal { background: #46584c; min-width: 28px; border-radius: 4px; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QToolTip { background: #29372f; color: #e4f6e9; border: 1px solid #536f5d; padding: 8px; }
-'''
+'''.replace('__CHEVRON__', (Path(__file__).parent / 'assets' / 'chevron-down.svg').as_posix())

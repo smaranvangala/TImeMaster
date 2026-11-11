@@ -5,10 +5,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, Qt, Slot
+from PySide6.QtCore import QSize, QTimer, Qt, Slot
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QFileDialog, QFrame, QHBoxLayout, QInputDialog, QLabel, QMainWindow,
-    QMessageBox, QPushButton, QStackedWidget, QVBoxLayout, QWidget,
+    QMessageBox, QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
 from .controller import Controller
@@ -22,6 +22,9 @@ from .ui.milestones import MilestonesPage
 from .ui.analytics import AnalyticsPage
 from .ui.settings import SettingsPage
 from .exports import backup_database, export_sessions
+from .ui.dashboard import DashboardPage
+from .ui.components import PageStack, label
+from .ui.icons import icon
 
 
 def default_database():
@@ -36,25 +39,35 @@ class Application(QMainWindow):
         self.store = store
         self.controller = controller if controller is not None else Controller(store)
         self.setWindowTitle('TimeMaster — LevelUp')
-        self.resize(1020, 700)
-        self.setMinimumSize(840, 600)
+        self.resize(1280, 900)
+        self.setMinimumSize(760, 620)
         self.setStyleSheet(DARK_THEME)
         central = QWidget()
         self.setCentralWidget(central)
         layout = QHBoxLayout(central)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(24)
-        sidebar = QFrame()
-        sidebar.setObjectName('sidebar')
-        sidebar.setFixedWidth(190)
-        navigation = QVBoxLayout(sidebar)
-        navigation.setContentsMargins(16, 22, 16, 22)
-        brand = QLabel('LevelUp')
-        brand.setObjectName('brand')
-        navigation.addWidget(brand)
-        navigation.addWidget(QLabel('TimeMaster'))
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.sidebar = QFrame()
+        self.sidebar.setObjectName('sidebar')
+        self.sidebar.setFixedWidth(222)
+        navigation = QVBoxLayout(self.sidebar)
+        navigation.setContentsMargins(16, 28, 16, 22)
+        navigation.setSpacing(7)
+        logo = QHBoxLayout()
+        mark = QLabel()
+        mark.setPixmap(icon('XP & Levels', '#a8e5c3').pixmap(27, 27))
+        logo.addWidget(mark)
+        self.wordmark = label('TimeMaster', 'brand')
+        logo.addWidget(self.wordmark)
+        logo.addStretch()
+        navigation.addLayout(logo)
         navigation.addSpacing(28)
-        self.pages = QStackedWidget()
+        self.nav_caption = label('WORKSPACE', 'eyebrow')
+        navigation.addWidget(self.nav_caption)
+        navigation.addSpacing(7)
+        self.pages = PageStack()
+        self.dashboard = DashboardPage()
+        self.pages.addWidget(self.dashboard)
         self.tasks = TasksPage()
         self.pages.addWidget(self.tasks)
         self.history = HistoryPage()
@@ -71,33 +84,32 @@ class Application(QMainWindow):
         self.navigation = {}
         self.navigation_group = QButtonGroup(self)
         self.navigation_group.setExclusive(True)
-        for name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
-            button = QPushButton(name.replace('&', '&&'))
-            self.navigation[name] = button
+        routes = {'Dashboard': self.dashboard, 'Tasks': self.tasks, 'Session history': self.history,
+                  'XP & Levels': self.progress, 'Milestones': self.milestones,
+                  'Analytics': self.analytics, 'Settings': self.settings}
+        self.routes = routes
+        for name, page in routes.items():
+            button = QPushButton('  ' + name.replace('&', '&&'))
+            button.setObjectName('navigation')
+            button.setIcon(icon(name))
+            button.setIconSize(QSize(20, 20))
+            button.setAccessibleName(name)
+            button.setToolTip(name)
             button.setCheckable(True)
+            self.navigation[name] = button
             self.navigation_group.addButton(button)
-            if name == 'Tasks':
-                button.setChecked(True)
-                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.tasks))
-            elif name == 'Session history':
-                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.history))
-            elif name == 'XP & Levels':
-                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.progress))
-            elif name == 'Milestones':
-                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.milestones))
-            elif name == 'Analytics':
-                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.analytics))
-            elif name == 'Settings':
-                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.settings))
-            else:
-                button.setEnabled(False)
-                button.setToolTip('Planned for a later phase')
+            button.clicked.connect(lambda checked=False, target=page: self.show_page(target))
             navigation.addWidget(button)
+        self.navigation['Dashboard'].setChecked(True)
         navigation.addStretch()
-        layout.addWidget(sidebar)
+        self.nav_footer = label('A LITTLE FOCUS, EVERY DAY.\n\nYour work stays on this device.', 'muted')
+        navigation.addWidget(self.nav_footer)
+        layout.addWidget(self.sidebar)
         content = QVBoxLayout()
-        self.summary = QLabel()
-        self.summary.setWordWrap(True)
+        content.setContentsMargins(30, 22, 30, 22)
+        content.setSpacing(18)
+        self.content_layout = content
+        self.summary = label('', 'muted')
         content.addWidget(self.summary)
         content.addWidget(self.pages, 1)
         self.focus = FocusPanel()
@@ -110,6 +122,8 @@ class Application(QMainWindow):
         self.focus.start_requested.connect(lambda: self.safe(self.start))
         self.focus.pause_requested.connect(lambda: self.safe(self.controller.pause))
         self.focus.stop_requested.connect(lambda: self.safe(self.stop))
+        self.dashboard.tasks_requested.connect(lambda: self.show_page(self.tasks))
+        self.dashboard.milestones_requested.connect(lambda: self.show_page(self.milestones))
         self.analytics.filter_requested.connect(lambda: self.safe(self.refresh_analytics))
         self.settings.backup_requested.connect(lambda: self.safe(self.backup))
         self.settings.export_requested.connect(lambda: self.safe(self.export))
@@ -119,6 +133,31 @@ class Application(QMainWindow):
         self.refresh_timer.timeout.connect(self.tick)
         self.refresh_timer.start()
         self.tick()
+
+    @property
+    def page_scroll(self):
+        return self.pages.currentScroll()
+
+    def show_page(self, page):
+        self.pages.setCurrentWidget(page)
+        for name, target in self.routes.items():
+            if target is page:
+                self.navigation[name].setChecked(True)
+                break
+        self.page_scroll.verticalScrollBar().setValue(0)
+
+    def resizeEvent(self, event):
+        if hasattr(self, 'sidebar') and hasattr(self, 'navigation'):
+            compact = self.width() < 1050
+            self.sidebar.setFixedWidth(76 if compact else 222)
+            self.wordmark.setVisible(not compact)
+            self.nav_caption.setVisible(not compact)
+            self.nav_footer.setVisible(not compact)
+            for name, button in self.navigation.items():
+                button.setText('' if compact else '  ' + name.replace('&', '&&'))
+            inset = 18 if compact else 30
+            self.content_layout.setContentsMargins(inset, 22, inset, 22)
+        super().resizeEvent(event)
 
     def safe(self, action):
         try:
@@ -147,6 +186,7 @@ class Application(QMainWindow):
         self.milestones.render(self.store.achievements())
         self.analytics.set_tasks(self.store.tasks())
         self.refresh_analytics()
+        self.dashboard.render(summary, self.store.tasks(), self.store.progression(), self.store.achievements())
 
     def refresh_analytics(self):
         filters = self.analytics.filters()

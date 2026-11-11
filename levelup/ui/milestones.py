@@ -1,7 +1,7 @@
 """Read-only milestones; definitions and eligibility live outside Qt."""
 from datetime import datetime
 
-from PySide6.QtWidgets import QHeaderView, QLabel, QProgressBar, QScrollArea, QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHeaderView, QLabel, QProgressBar, QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
 from .formatting import format_duration
 from .components import Card, PageHeader, ResponsiveGrid, label
@@ -39,10 +39,7 @@ class MilestonesPage(QWidget):
             card.body.addWidget(state)
             self.cards.add(card)
             self.badges.append((card, mark, value, state, bar))
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.cards)
-        self.tabs.addTab(scroll, 'Collection')
+        self.tabs.addTab(self.cards, 'Collection')
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(['Milestone', 'Progress', 'Status', 'Recorded unlock'])
         self.tree.setRootIsDecorated(False)

@@ -1,6 +1,6 @@
 """Shared presentation components. No database queries or reward calculations."""
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QScrollArea, QStackedWidget, QVBoxLayout, QWidget
 
 
 def label(text='', role='body'):
@@ -73,3 +73,27 @@ class ResponsiveGrid(QWidget):
     def resizeEvent(self, event):
         self.reflow()
         super().resizeEvent(event)
+
+
+class PageStack(QStackedWidget):
+    """Each page owns its scroll area; long hidden pages cannot stretch others."""
+    def addWidget(self, page):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(page)
+        return super().addWidget(scroll)
+
+    def currentWidget(self):
+        scroll = super().currentWidget()
+        return scroll.widget() if scroll else None
+
+    def currentScroll(self):
+        return super().currentWidget()
+
+    def setCurrentWidget(self, page):
+        for index in range(self.count()):
+            scroll = super().widget(index)
+            if scroll.widget() is page:
+                super().setCurrentWidget(scroll)
+                return
+        raise ValueError('Page is not registered in this workspace.')

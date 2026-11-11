@@ -7,13 +7,15 @@ from PySide6.QtWidgets import (
 )
 
 from .formatting import format_duration
+from .components import PageHeader, label
+from .theme import COLORS
 
 
 class FocusChart(QWidget):
     def __init__(self):
         super().__init__()
         self.buckets = ()
-        self.setMinimumHeight(190)
+        self.setMinimumHeight(210)
         self.setMouseTracking(True)
         self.setAccessibleName('Focus duration bar chart; exact values available in the Totals tab')
 
@@ -28,15 +30,19 @@ class FocusChart(QWidget):
         left, top, bottom = 60, 28, self.height() - 48
         width = (self.width() - left - 10) / max(1, len(self.buckets))
         maximum = max((item.seconds for item in self.buckets), default=0)
-        painter.setPen(QColor('#b9c5d8'))
+        painter.setPen(QColor(COLORS['muted']))
         painter.drawText(8, 18, 'Hours')
         painter.drawText(8, top + 12, f'{maximum / 3600:.2f}')
         painter.drawText(25, bottom, '0')
-        painter.drawLine(left, bottom, self.width() - 8, bottom)
+        painter.setPen(QColor(COLORS['border']))
+        for division in range(4):
+            y = bottom - (bottom - top) * division / 3
+            painter.drawLine(left, int(y), self.width() - 8, int(y))
+        painter.setPen(QColor(COLORS['muted']))
         for index, bucket in enumerate(self.buckets):
             x = left + width * index
             height = (bottom - top) * bucket.seconds / maximum if maximum else 0
-            painter.fillRect(QRectF(x + 7, bottom - height, max(1, width - 14), height), QColor('#7389eb'))
+            painter.fillRect(QRectF(x + 7, bottom - height, max(1, width - 14), height), QColor(COLORS['accent']))
             painter.drawText(QRectF(x, bottom + 7, width, 20), Qt.AlignmentFlag.AlignCenter,
                              bucket.start.strftime('%m-%d'))
         if not maximum:
@@ -61,21 +67,17 @@ class AnalyticsPage(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        heading = QLabel('Focus analytics')
-        heading.setObjectName('heading')
-        layout.addWidget(heading)
-        note = QLabel('Saved sessions by local start date • Weeks start Monday • Up to 366 days')
-        note.setObjectName('muted')
-        note.setWordWrap(True)
-        layout.addWidget(note)
+        layout.setSpacing(16)
+        layout.addWidget(PageHeader('Patterns / Insights', 'See where your focus takes you.',
+                                    'Saved sessions by local start date. Monday-based weeks, up to 366 days at a time.'))
         dates = QHBoxLayout()
         self.start = QDateEdit(QDate.currentDate().addDays(-29))
         self.end = QDateEdit(QDate.currentDate())
-        for label, widget in (('From', self.start), ('Through', self.end)):
+        for caption, widget in (('From', self.start), ('Through', self.end)):
             widget.setCalendarPopup(True)
             widget.setDisplayFormat('yyyy-MM-dd')
-            widget.setAccessibleName(label + ' date')
-            dates.addWidget(QLabel(label))
+            widget.setAccessibleName(caption + ' date')
+            dates.addWidget(QLabel(caption))
             dates.addWidget(widget)
         self.grouping = QComboBox()
         self.grouping.addItem('Daily', 'daily')
@@ -89,11 +91,12 @@ class AnalyticsPage(QWidget):
         self.task.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.task.setAccessibleName('Filter by task')
         self.apply = QPushButton('Apply filters')
+        self.apply.setObjectName('primary')
         self.apply.clicked.connect(self.filter_requested.emit)
         row.addWidget(self.task, 1)
         row.addWidget(self.apply)
         layout.addLayout(row)
-        self.summary = QLabel()
+        self.summary = label('', 'badge')
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
         self.tabs = QTabWidget()
@@ -107,6 +110,7 @@ class AnalyticsPage(QWidget):
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
         self.tree.setAccessibleName('Exact focus totals')
+        self.tree.setMinimumHeight(210)
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         for column in (1, 2):
             self.tree.header().setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
