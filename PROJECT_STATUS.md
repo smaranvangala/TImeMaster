@@ -2,76 +2,80 @@
 Updated: 2026-11-11
 
 ## Current phase
-Phase 3 (milestones/achievements) complete; user authorized committing and
-publishing to main for Windows testing. STOP: Phase 4 requires explicit approval.
+Phase 4 (analytics) complete; user authorized committing and publishing to main
+for Windows testing. STOP: Phase 5 requires explicit user approval.
 
 ## Completed features
-- Phase 1: PySide6 task CRUD/completion/reopening, SQLite persistence, monotonic
-  timer excluding pauses, save/close confirmation, safe failed-save retry.
-- SQL-derived per-task/overall focus totals, session count and history; deleted
-  tasks retain saved time/history (shown as “Deleted task”).
-- Phase 2: atomic per-session XP ledger and XP & Levels page, historical rewards,
-  progress bar and persisted level progress.
-- Phase 3: enabled Milestones page with progress, locked/unlocked state and local
-  recorded unlock timestamp. Unlocks are unique/permanent and update after save.
-- Seven milestones: 1/10/25 saved sessions, 1/10 saved focus hours, levels 2/5.
-- Existing data recognized during transactional upgrade; no lost task/session/XP
-  rows, no duplicate unlocks, no bonus XP and no changes to timer/reward rules.
+- Phase 1: PySide6 task CRUD/completion, SQLite persistence, monotonic focus
+  timer excluding pauses, close confirmation, atomic saves and failed-save retry.
+- SQL-derived task/overall focus totals and session count; retained history/time
+  for deleted tasks, local start timestamps and durations in history.
+- Phase 2: per-session XP ledger, levels/progress UI and historical rewards.
+- Phase 3: seven permanent milestones (1/10/25 sessions, 1/10 hours, levels 2/5),
+  saved unlock timestamps, historical recognition, no bonus XP.
+- Phase 4: Analytics page with inclusive date range, task/deleted-task filters,
+  daily/weekly totals, focus-hours bar chart with tooltips/horizontal scroll,
+  exact-value table, zero-focus periods and filtered time/session summary.
+- Analytics refreshes after saves/data changes and reloads saved data on startup.
+  Invalid ranges show inline errors without interfering with session saves.
 
 ## Architecture / rules
-- Python 3.11+, PySide6>=6.8,<7, standard-library SQLite.
-- core.py owns DB/migrations/timer; controller.py owns actions/guards;
-  progression.py owns XP rules; achievements.py owns stable milestone definitions
-  and pure progress evaluation; app.py composes Qt views; ui/ holds widgets.
-- XP: floor(active seconds / 60) per saved session; partial minutes do not carry.
-  Level = total XP // 100 + 1. No task completion bonus or milestone bonus.
-- All nonzero saved sessions count toward session milestones. Unsaved time does
-  not count. Deleted-task sessions still count; completing/reopening tasks has
-  no milestone effect. Unlock keys must remain stable across future releases.
-- achievement_unlocks stores only key and UTC detection time; totals/progress
-  derive from existing sessions/XP. Historical unlock time means first detected
-  by this upgrade, not the original threshold-crossing time.
-- New session, XP award and milestone unlocks share one transaction. Failure
-  rolls back everything, preserving the paused timer for a retry.
-- Schema v3: v0 initializes baseline, v1 adds XP ledger/backfill to v2, v2 adds
-  milestone unlocks/backfill to v3. DDL/backfill/version changes are atomic;
-  unknown future versions rejected. No table resets or database path changes.
-- Database: %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on Windows; otherwise
-  ~/.local/share/LevelUp/levelup.sqlite3. Back up before upgrading; older app
-  builds must not use the upgraded database.
-- QTimer refreshes display every 200 ms; never queries SQLite or calculates
-  elapsed time. Data views refresh on startup/data changes.
+- Python 3.11+, PySide6>=6.8,<7, SQLite. No new dependencies or schema changes.
+- core.py owns storage/migrations/timer, controller.py owns actions/guards;
+  progression.py owns XP rules; achievements.py owns milestone definitions;
+  analytics.py owns pure calendar aggregation; ui/ owns Qt views/chart/formatting.
+- Analytics uses parameterized task filtering then aggregates session rows in
+  Python for correct local-calendar/timezone handling. No stored summary counters.
+- Saved sessions count by local start date; full duration goes to that date,
+  including overnight sessions. Do not split days without pause-segment data.
+- Weeks start Monday. Inclusive filters limit partial boundary weeks. Dates with
+  no sessions remain in reports. Fractions are summed before display truncation.
+- Date range: at most 366 days, default last 30 local days. Filters temporary;
+  restart resets them. Deleted selected task resets filter to All tasks.
+- Completed tasks included; deleted task sessions retained as a combined filter.
+- QPainter bar chart uses hours; hover/Table gives exact duration and count.
+- All-time summary remains global; Analytics summary applies selected filters.
+- QTimer only refreshes live display; no DB reads or aggregation on timer ticks.
+- XP unchanged: floor(active seconds/60) per saved session, 100 XP per level
+  starting at level 1. No task completion or milestone bonus. Session/XP/unlocks
+  share a transaction; unique session awards and permanent achievement keys.
+- Schema v3; v1/v2 migration paths retain original records. No downgrades/resets.
+- DB path unchanged: %LOCALAPPDATA%/LevelUp/levelup.sqlite3 on Windows, otherwise
+  ~/.local/share/LevelUp/levelup.sqlite3. No live Windows DB available here.
 
 ## Validation
-- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (25 tests).
+- PASS: .venv/bin/python -m unittest discover -s levelup/tests -v (32 tests).
 - PASS: .venv/bin/python -m compileall -q levelup; git diff --check.
-- All Phase 1/2 tests retained, expected current-schema version updated to 3.
-- New coverage: all milestone threshold boundaries, unique stable keys, fractional
-  total time, permanent unlock timestamps, deleted-task retention, no bonus XP,
-  v2 row-preserving upgrade/repeated reopen, migration rollback/retry, failed
-  unlock rolling back session/XP, UI immediate update/navigation/reopen.
-- Close/save and failed-save UI tests verify milestone state too.
-- Offscreen Milestones page render checked. Real Windows data/appearance require
-  manual validation; no live Windows database is accessible in this workspace.
+- Phase 1–3 regression tests retained. New coverage: inclusive local-midnight
+  boundaries, fractional totals, overnight-session attribution, Monday/partial
+  weeks, zero days/year boundaries, range validation, DST repeated hour, task/
+  deleted filtering, SQL parameter safety, reopening DB and read-only reports.
+- Qt checks: enabled Analytics navigation, chart/table values, apply/group/task
+  filters, rename/delete selection retention/reset, immediate saved updates,
+  and session save despite invalid analytics filters.
+- Offscreen chart render/close inspected. Native Windows scaling/input/calendar
+  dialogs and real-data timezone behavior still need manual testing.
 
 ## Known bugs / limitations
 - No confirmed defects from automated tests.
-- Forced exit can lose unsaved active session; OS sleep follows monotonic clock.
-- Deleted task names are unrecoverable from original schema records.
-- History loads all rows; pagination deferred. No installer yet.
-- Historical achievement dates are detection dates, as documented in the UI.
+- Queries load selected task's session history before calendar filtering; indexing/
+  pagination can be added when real dataset sizes justify it.
+- Filters are not persisted; changing computer timezone changes calendar grouping.
+- Overnight sessions use start-date attribution rather than active-segment splits.
+- Forced exit can lose unsaved session. Sleep accounting follows monotonic clock.
+- Original deleted-task names unavailable. No installer yet.
+- Historical milestone unlock dates record detection time, not reconstructed dates.
 
 ## Git / next step
-- Work in /workspace/TImeMaster; workspace-root copies are historical.
-- Origin: https://github.com/smaranvangala/TImeMaster.git, branch main.
-- Phase 2 published: 2a4a0d1b56fa6b5874b0146370a3ee96ef52cc88.
-- User approved committing and publishing Phase 3 to main.
-- Recommended commit: `feat: add persistent milestones and achievements`.
-- Windows manual test: back up DB, launch upgrade, inspect historical unlocks,
-  save a session, check immediate progress/no bonus XP, restart, delete/reopen
-  tasks and verify unlock retention before approving Phase 4.
-- Phase 4: daily/weekly analytics/charts/filtering; NOT started.
-- Phase 5: Windows packaging/release checks.
-- At phase end: test, update notes, recommend commit and wait.
-- Start a fresh Codex session after manual review; AGENTS.md and this file contain
-  the handoff. Read only relevant files to keep context/usage small.
+- Repository: /workspace/TImeMaster (workspace-root copies are historical).
+- Origin: https://github.com/smaranvangala/TImeMaster.git; branch main.
+- Phase 3 published: 32c0c36ef7a0ed8ea21c0787f69fbab9cde4fd79.
+- User authorized the Phase 4 commit and push to main.
+- Recommended commit: `feat: add daily and weekly focus analytics`.
+- Windows testing: choose ranges/tasks, compare daily/weekly/table totals and
+  history, check deleted tasks/zero days/invalid dates, save new sessions, restart
+  and reapply filters to confirm persistence before approving Phase 5.
+- Phase 5: Windows packaging/release checks; NOT started.
+- Phase end: test, update notes, recommend commit and stop.
+- Start a fresh Codex session after manual review to control context/usage; read
+  AGENTS.md and PROJECT_STATUS.md first, then only relevant implementation files.

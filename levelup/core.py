@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .progression import progress_for, session_xp
 from .achievements import evaluate
+from .analytics import summarize
 
 
 def utc_now():
@@ -132,12 +133,21 @@ class Store:
                    COUNT(*) AS session_count FROM sessions
         ''').fetchone()
 
-    def session_history(self):
-        return self.connection.execute('''
+    def session_history(self, task_id=None, deleted_only=False):
+        condition, parameters = '', ()
+        if deleted_only:
+            condition = 'WHERE sessions.task_id IS NULL'
+        elif task_id is not None:
+            condition, parameters = 'WHERE sessions.task_id = ?', (task_id,)
+        return self.connection.execute(f'''
             SELECT sessions.*, tasks.title AS task_title
             FROM sessions LEFT JOIN tasks ON tasks.id = sessions.task_id
+            {condition}
             ORDER BY sessions.started_at DESC, sessions.id DESC
-        ''').fetchall()
+        ''', parameters).fetchall()
+
+    def analytics(self, start, end, grouping='daily', task_id=None, deleted_only=False, tz=None):
+        return summarize(self.session_history(task_id, deleted_only), start, end, grouping, tz)
 
     def rename_task(self, task_id, title):
         title = self.validate_title(title)

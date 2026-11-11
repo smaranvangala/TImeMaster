@@ -11,9 +11,10 @@
 - Qt tests use offscreen rendering, temporary databases and mocked modal dialogs.
 - SQL uses bound parameters and transactions. Preserve history on task deletion.
 - Preserve %LOCALAPPDATA%/LevelUp/levelup.sqlite3 and schema version 3. Versioned migrations must be transactional; never reset user data or downgrade a newer schema.
-- Keep dependencies/explanations concise. Future sidebar sections stay disabled until authorized. Phase 3 is authorized; do not start Phase 4.
+- Keep dependencies/explanations concise. Future sidebar sections stay disabled until authorized. Phase 4 is authorized; do not start Phase 5.
 - Totals/history are SQL-derived from sessions; never add duplicate counters. Include deleted-task sessions in overall totals. QTimer must not run database queries.
 - XP rules live in progression.py: 1 XP per whole minute per saved session, 100 XP per level from level 1; no task completion bonus. Unique session ledger awards and session inserts share a transaction.
 - achievements.py defines stable milestone keys/thresholds. Unlocks persist once in achievement_unlocks, within the same transaction as session/XP writes. No bonus XP or duplicate metric counters.
-- User authorized committing and publishing Phase 3 to main. Phase 4 requires separate approval.
+- analytics.py aggregates read-only session records by local start date, Monday-based weeks and inclusive ranges (max 366 days). Keep aggregation independent of Qt; never split durations across days without pause-segment data.
+- User authorized committing and publishing Phase 4 to main. Phase 5 requires separate approval.
 - After authorized work: test, update PROJECT_STATUS.md, recommend a commit, stop.

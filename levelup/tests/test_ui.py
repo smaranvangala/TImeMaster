@@ -232,6 +232,59 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.milestones.summary.text(), '1 / 7 unlocked')
         self.assertEqual(self.window.milestones.tree.topLevelItem(0).text(3), recorded)
 
+    def test_analytics_filters_refresh_and_invalid_range(self):
+        from PySide6.QtCore import QDate
+        from datetime import datetime, timezone
+        task = self.add_selected()
+        page = self.window.analytics
+        today = QDate.currentDate()
+        page.start.setDate(today)
+        page.end.setDate(today)
+        self.click(page.apply)
+        self.assertIn('Sessions: 0', page.summary.text())
+        self.click(self.window.focus.start_button)
+        self.now[0] = 65
+        self.click(self.window.focus.stop_button)
+        self.assertIn('00:01:05', page.summary.text())
+        self.assertIn('Sessions: 1', page.summary.text())
+        self.click(self.window.navigation['Analytics'])
+        self.assertIs(self.window.pages.currentWidget(), page)
+        self.assertEqual(page.tree.topLevelItemCount(), 1)
+        self.assertEqual(len(page.chart.buckets), 1)
+        other = self.store.add_task('Other')
+        self.store.record_session(other, datetime.now(timezone.utc).isoformat(), 120)
+        self.window.refresh()
+        page.task.setCurrentIndex(page.task.findData(task))
+        self.click(page.apply)
+        self.assertIn('Sessions: 1', page.summary.text())
+        self.assertIn('00:01:05', page.summary.text())
+        page.grouping.setCurrentIndex(1)
+        self.click(page.apply)
+        self.assertEqual(page.tree.topLevelItem(0).text(1), '00:01:05')
+        self.assertEqual(page.task.currentData(), task)
+        self.store.rename_task(task, 'Renamed')
+        self.window.refresh()
+        self.assertEqual(page.task.currentData(), task)
+        self.assertIn('Renamed', page.task.currentText())
+        self.store.delete_task(task)
+        self.window.refresh()
+        self.assertIsNone(page.task.currentData())
+        page.task.setCurrentIndex(page.task.findData('deleted'))
+        self.click(page.apply)
+        self.assertIn('00:01:05', page.summary.text())
+        page.start.setDate(today.addDays(1))
+        self.click(page.apply)
+        self.assertIn('Start date', page.summary.text())
+        self.assertEqual(page.tree.topLevelItemCount(), 0)
+        # Invalid analytics filters must not prevent a successful session save.
+        self.window.tasks.tree.setCurrentItem(self.window.tasks.tree.topLevelItem(0))
+        self.click(self.window.focus.start_button)
+        self.now[0] = 130
+        with patch.object(QMessageBox, 'critical') as error:
+            self.click(self.window.focus.stop_button)
+            error.assert_not_called()
+        self.assertEqual(self.store.focus_summary()['session_count'], 3)
+
     def test_existing_phase_one_database_and_navigation(self):
         self.store.add_task('Existing task')
         self.store.record_session(1, '2026-11-11T00:00:00+00:00', 20)
@@ -239,7 +292,7 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(self.window.tasks.tree.topLevelItem(0).text(0), 'Existing task')
         self.assertEqual(self.store.connection.execute('SELECT seconds FROM sessions').fetchone()[0], 20)
         for name, button in self.window.navigation.items():
-            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones'))
+            self.assertEqual(button.isEnabled(), name in ('Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics'))
         with patch.dict(os.environ, {'LOCALAPPDATA': self.directory.name}):
             self.assertEqual(default_database(), Path(self.directory.name) / 'LevelUp' / 'levelup.sqlite3')
 

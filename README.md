@@ -34,8 +34,8 @@ sessions. Completing a task is independent of completing a focus session.
 Deleted tasks retain their sessions and overall time, labeled “Deleted task”;
 history uses current titles for tasks that still exist.
 
-Tasks, Session history, XP & Levels and Milestones are enabled. Dashboard,
-Skills, Analytics and Settings remain placeholders.
+Tasks, Session history, XP & Levels, Milestones and Analytics are enabled.
+Dashboard, Skills and Settings remain placeholders.
 
 ## XP and levels (Phase 2)
 Each saved session awards 1 XP per full active minute: 59 seconds gives 0 XP,
@@ -66,6 +66,30 @@ Existing data is recognized during the upgrade. For historical milestones,
 the recorded unlock time is the upgrade time, not a reconstructed historical
 achievement date. Unlocks persist after restarting and deleting tasks.
 
+## Focus analytics (Phase 4)
+Open Analytics, select an inclusive From/Through date range (up to 366 days),
+choose Daily or Weekly, select All tasks, Deleted tasks or a specific task,
+and click Apply filters. The default range is the last 30 calendar days.
+Completed tasks are included. Task IDs distinguish identical titles.
+
+The filtered summary shows saved duration and session count. Chart displays
+focus hours with hover details and horizontal scrolling; Totals provides exact
+HH:MM:SS durations and counts, including dates/weeks with no focus. Weekly
+labels show the Monday starting each week. Boundary weeks count only dates
+inside the filter. Global summary above the page remains the lifetime total.
+
+Full session duration is attributed to its local start date, including sessions
+that cross midnight; records do not contain enough detail to split active time
+around pauses across calendar days. Saved durations exclude paused time. Dates
+use the computer's local timezone, including its historical daylight-saving
+rules. Changing timezone can change calendar grouping without altering data.
+
+Analytics refreshes after saving/renaming/deleting tasks and reloads saved data
+on startup. Task/date filters are temporary and reset on restart; deleting the
+selected task resets its filter to All tasks. Invalid ranges show an inline
+message and do not prevent saving sessions. No database migration, extra runtime
+dependency, counters, or changes to XP/milestone rules are involved.
+
 ## Existing data
 The app opens the same database as before:
 `%LOCALAPPDATA%\LevelUp\levelup.sqlite3` on Windows, or
@@ -92,6 +116,7 @@ or timing sleeps are involved.
 
 - `levelup/core.py`: SQLite persistence, derived focus totals/history and unchanged monotonic timer.
 - `levelup/progression.py`: pure reward rules and level calculations.
+- `levelup/analytics.py`: pure local-calendar aggregation; Store supplies filtered SQLite rows.
 - `levelup/achievements.py`: stable milestone definitions and pure progress evaluation.
 - `levelup/controller.py`: application actions and task/session guards, independent of Qt.
 - `levelup/app.py`: QMainWindow, dialogs, signals, startup and close handling.
@@ -110,7 +135,10 @@ or timing sleeps are involved.
    immediately and remains unchanged after restarting, reopening or deleting tasks.
 8. Open Milestones before/after saving, verify first-session progress/unlocks,
    restart and delete a task; confirm unlocks persist and XP has no bonus.
-9. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
+9. In Analytics, compare daily/weekly totals for a chosen range, filter by task
+   and deleted tasks, hover chart bars, inspect Totals and verify updates after
+   saving. Restart and confirm saved totals with the same chosen filters.
+10. Check keyboard navigation, text scaling and dark-theme dialogs on your display.
 
-See PROJECT_STATUS.md for phase gates. Phase 3 is ready for Windows testing; the user authorized publishing it to main. Advanced
-analytics and Windows packaging are deferred. Phase 4 requires approval.
+See PROJECT_STATUS.md for phase gates. Phase 4 is ready for Windows testing; the user authorized publishing it to main. Windows
+packaging and release checks remain Phase 5 and require explicit approval.

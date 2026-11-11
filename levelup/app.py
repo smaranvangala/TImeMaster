@@ -18,6 +18,7 @@ from .ui.history import HistoryPage
 from .ui.formatting import format_duration
 from .ui.progress import ProgressPage
 from .ui.milestones import MilestonesPage
+from .ui.analytics import AnalyticsPage
 
 
 def default_database():
@@ -59,6 +60,8 @@ class Application(QMainWindow):
         self.pages.addWidget(self.progress)
         self.milestones = MilestonesPage()
         self.pages.addWidget(self.milestones)
+        self.analytics = AnalyticsPage()
+        self.pages.addWidget(self.analytics)
         self.navigation = {}
         for name in ('Dashboard', 'Skills', 'Tasks', 'Session history', 'XP & Levels', 'Milestones', 'Analytics', 'Settings'):
             button = QPushButton(name.replace('&', '&&'))
@@ -72,6 +75,8 @@ class Application(QMainWindow):
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.progress))
             elif name == 'Milestones':
                 button.clicked.connect(lambda: self.pages.setCurrentWidget(self.milestones))
+            elif name == 'Analytics':
+                button.clicked.connect(lambda: self.pages.setCurrentWidget(self.analytics))
             else:
                 button.setEnabled(False)
                 button.setToolTip('Planned for a later phase')
@@ -93,6 +98,7 @@ class Application(QMainWindow):
         self.focus.start_requested.connect(lambda: self.safe(self.start))
         self.focus.pause_requested.connect(lambda: self.safe(self.controller.pause))
         self.focus.stop_requested.connect(lambda: self.safe(self.stop))
+        self.analytics.filter_requested.connect(lambda: self.safe(self.refresh_analytics))
         self.refresh()
         self.refresh_timer = QTimer(self)
         self.refresh_timer.setInterval(200)
@@ -125,6 +131,17 @@ class Application(QMainWindow):
         self.history.render(self.store.session_history())
         self.progress.render(self.store.progression())
         self.milestones.render(self.store.achievements())
+        self.analytics.set_tasks(self.store.tasks())
+        self.refresh_analytics()
+
+    def refresh_analytics(self):
+        filters = self.analytics.filters()
+        try:
+            report = self.store.analytics(**filters)
+        except ValueError as error:
+            self.analytics.show_error(str(error))
+            return
+        self.analytics.render(report)
 
     def rename(self):
         task_id = self.tasks.selected_id()
